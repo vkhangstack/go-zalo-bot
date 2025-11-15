@@ -1,0 +1,249 @@
+name: Release and Deployment
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Validate tag format
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Tag must follow semantic versioning format (v*.*.*)."
+            echo "Got: $VERSION"
+            exit 1
+          fi
+          echo "✓ Tag format is valid: $VERSION"
+      
+      - name: Download dependencies
+        run: go mod download
+      
+      - name: Verify dependencies
+        run: go mod verify
+      
+      - name: Build all packages
+        run: go build ./...
+      
+      - name: Build examples
+        run: |
+          echo "Building examples..."
+          for example in examples/*/; do
+            if [ -f "$example/main.go" ]; then
+              echo "Building $example"
+              (cd "$example" && go build .)
+            fi
+          done
+          echo "✓ All examples built successfully"
+      
+      - name: Run tests with race detector
+        run: go test -v -race -coverprofile=coverage.txt ./...
+      
+      - name: Check test coverage
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.txt | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Test coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Error: Test coverage is below 80% threshold"
+            exit 1
+          fi
+          echo "✓ Test coverage meets threshold"
+      
+      - name: Make validation script executable
+        run: chmod +x scripts/validate.sh
+      
+      - name: Run validation script
+        run: ./scripts/validate.sh --verbose
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: validate-release
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION_NUMBER=${VERSION#v}
+          echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          echo "Version number: $VERSION_NUMBER"
+      
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version_number }}
+          echo "Extracting changelog for version $VERSION"
+          
+          # Extract the changelog section for this version
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit;
+              if ($0 ~ "\\[" ver "\\]") {
+                found=1;
+                next;
+              }
+            }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md)
+          
+          if [ -z "$CHANGELOG" ]; then
+            echo "Warning: No changelog entry found for version $VERSION"
+            CHANGELOG="Release $VERSION"
+          fi
+          
+          # Save to file for multiline output
+          echo "$CHANGELOG" > /tmp/changelog.txt
+          echo "changelog_file=/tmp/changelog.txt" >> $GITHUB_OUTPUT
+          
+          echo "Changelog extracted:"
+          echo "$CHANGELOG"
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: ${{ steps.changelog.outputs.changelog_file }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update commit status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✓ GitHub Release created successfully"
+          else
+            echo "✗ Failed to create GitHub Release"
+            exit 1
+          fi
+
+  notify-pkg-go-dev:
+    name: Notify pkg.go.dev
+    runs-on: ubuntu-latest
+    needs: create-release
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Wait for pkg.go.dev indexing
+        run: |
+          echo "Waiting 30 seconds for pkg.go.dev to index the new version..."
+          sleep 30
+      
+      - name: Verify package on pkg.go.dev
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          MODULE_PATH="github.com/vkhangstack/go-zalo-bot"
+          PKG_URL="https://pkg.go.dev/${MODULE_PATH}@${VERSION}"
+          
+          echo "Checking if package is available at: $PKG_URL"
+          
+          # Try to fetch the package page
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PKG_URL")
+          
+          if [ "$HTTP_CODE" == "200" ]; then
+            echo "✓ Package successfully indexed on pkg.go.dev"
+            echo "Package URL: $PKG_URL"
+          else
+            echo "⚠ Package not yet available on pkg.go.dev (HTTP $HTTP_CODE)"
+            echo "This is normal - pkg.go.dev may take a few minutes to index."
+            echo "Check manually at: $PKG_URL"
+          fi
+      
+      - name: Notify GOPROXY
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          MODULE_PATH="github.com/vkhangstack/go-zalo-bot"
+          
+          echo "Notifying GOPROXY about new version..."
+          
+          # Request the module from proxy.golang.org to trigger indexing
+          PROXY_URL="https://proxy.golang.org/${MODULE_PATH}/@v/${VERSION}.info"
+          echo "Requesting: $PROXY_URL"
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$PROXY_URL")
+          
+          if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "410" ]; then
+            echo "✓ GOPROXY notified successfully"
+          else
+            echo "⚠ GOPROXY notification returned HTTP $HTTP_CODE"
+            echo "The module should still be available shortly"
+          fi
+      
+      - name: Display next steps
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          MODULE_PATH="github.com/vkhangstack/go-zalo-bot"
+          
+          echo ""
+          echo "=========================================="
+          echo "Release $VERSION completed successfully!"
+          echo "=========================================="
+          echo ""
+          echo "📦 Package Information:"
+          echo "  - Module: $MODULE_PATH"
+          echo "  - Version: $VERSION"
+          echo "  - Documentation: https://pkg.go.dev/${MODULE_PATH}@${VERSION}"
+          echo ""
+          echo "🔍 Verification:"
+          echo "  Users can now install with:"
+          echo "    go get ${MODULE_PATH}@${VERSION}"
+          echo ""
+          echo "📊 Monitoring:"
+          echo "  - Check pkg.go.dev: https://pkg.go.dev/${MODULE_PATH}"
+          echo "  - View release: https://github.com/vkhangstack/go-zalo-bot/releases/tag/${VERSION}"
+          echo ""
+      
+      - name: Update commit status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✓ pkg.go.dev notification completed"
+          else
+            echo "⚠ pkg.go.dev notification had issues (non-critical)"
+          fi
