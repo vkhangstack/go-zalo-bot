@@ -5,7 +5,7 @@ import "encoding/json"
 // User represents a user in Zalo Bot
 type User struct {
 	ID     string `json:"id"`
-	Name   string `json:"name"`
+	Name   string `json:"display_name"`
 	Avatar string `json:"avatar,omitempty"`
 	IsBot  bool   `json:"is_bot"`
 }

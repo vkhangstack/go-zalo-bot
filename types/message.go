@@ -13,6 +13,8 @@ type Message struct {
 	Chat        *Chat        `json:"chat"`
 	Date        time.Time    `json:"date"`
 	Text        string       `json:"text,omitempty"`
+	Photo       *Photo       `json:"photo,omitempty"`
+	Sticker     *Sticker     `json:"sticker,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
@@ -216,21 +218,21 @@ func (sm *StructuredMessage) Validate() error {
 	if !sm.Type.IsValid() {
 		return NewValidationError("Invalid structured message type")
 	}
-	
+
 	// Validate elements
 	for i, element := range sm.Elements {
 		if err := element.Validate(); err != nil {
 			return NewValidationError(fmt.Sprintf("Invalid element at index %d: %s", i, err.Error()))
 		}
 	}
-	
+
 	// Validate quick replies
 	for i, quickReply := range sm.QuickReplies {
 		if err := quickReply.Validate(); err != nil {
 			return NewValidationError(fmt.Sprintf("Invalid quick reply at index %d: %s", i, err.Error()))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -239,14 +241,14 @@ func (me *MessageElement) Validate() error {
 	if me.Title == "" {
 		return NewValidationError("Title is required for message element")
 	}
-	
+
 	// Validate buttons
 	for i, button := range me.Buttons {
 		if err := button.Validate(); err != nil {
 			return NewValidationError(fmt.Sprintf("Invalid button at index %d: %s", i, err.Error()))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -255,11 +257,11 @@ func (b *Button) Validate() error {
 	if !b.Type.IsValid() {
 		return NewValidationError("Invalid button type")
 	}
-	
+
 	if b.Title == "" {
 		return NewValidationError("Title is required for button")
 	}
-	
+
 	switch b.Type {
 	case ButtonTypePostback:
 		if b.Payload == "" {
@@ -274,7 +276,7 @@ func (b *Button) Validate() error {
 			return NewValidationError("Payload (phone number) is required for phone number button")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -283,10 +285,10 @@ func (qr *QuickReply) Validate() error {
 	if !qr.ContentType.IsValid() {
 		return NewValidationError("Invalid quick reply content type")
 	}
-	
+
 	if qr.ContentType == QuickReplyTypeText && qr.Title == "" {
 		return NewValidationError("Title is required for text quick reply")
 	}
-	
+
 	return nil
 }
