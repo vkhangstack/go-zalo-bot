@@ -151,7 +151,7 @@ func (s *BaseService) executeRequest(ctx context.Context, apiReq *APIRequest) (*
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
+	req.Header.Set("User-Agent", UserAgent())
 
 	// Add environment-specific headers
 	if s.config.Environment == types.Development {
@@ -239,6 +239,11 @@ func (s *BaseService) GetHTTPClient() *http.Client {
 // GetConfig returns the configuration
 func (s *BaseService) GetConfig() *types.Config {
 	return s.config
+}
+
+// GetFieldSignature returns the header field name for webhook signature
+func (s *BaseService) GetFieldSignature() string {
+	return "X-Zalo-Signature"
 }
 
 // parseResult parses the result field from API response into the target struct

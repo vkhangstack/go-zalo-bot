@@ -22,9 +22,9 @@ func NewAuthService(config *types.Config) (*AuthService, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
-	
+
 	tokenManager := NewTokenManager(config.BotToken)
-	
+
 	return &AuthService{
 		tokenManager: tokenManager,
 		httpClient:   config.HTTPClient,
@@ -43,31 +43,31 @@ func (as *AuthService) ValidateCredentials(ctx context.Context) error {
 	if !as.tokenManager.IsValid() {
 		return types.NewAuthError("invalid bot token")
 	}
-	
+
 	// Make a test API call to validate credentials
 	// Using the "getMe" equivalent endpoint for Zalo Bot API with bot token in URL
 	url := as.GetAPIEndpoint("getMe")
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return types.NewNetworkError(fmt.Sprintf("failed to create request: %v", err))
 	}
-	
+
 	// Bot token authentication doesn't use Authorization headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
-	
+
 	// Add environment-specific headers if needed
 	if as.environment == types.Development {
 		req.Header.Set("X-Environment", "development")
 	}
-	
+
 	resp, err := as.httpClient.Do(req)
 	if err != nil {
 		return types.NewNetworkError(fmt.Sprintf("failed to make request: %v", err))
 	}
 	defer resp.Body.Close()
-	
+
 	// Handle different response status codes
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -86,11 +86,11 @@ func (as *AuthService) ValidateCredentials(ctx context.Context) error {
 				Message string `json:"message"`
 			} `json:"error"`
 		}
-		
+
 		if err := json.NewDecoder(resp.Body).Decode(&apiResp); err == nil && apiResp.Error.Message != "" {
 			return types.NewAPIError(apiResp.Error.Code, apiResp.Error.Message, "credential validation failed")
 		}
-		
+
 		return types.NewAPIError(resp.StatusCode, "credential validation failed", fmt.Sprintf("HTTP %d", resp.StatusCode))
 	}
 }
@@ -124,33 +124,33 @@ func (as *AuthService) ValidateEnvironmentConfig() error {
 		if as.apiEndpoint == "" {
 			return types.NewValidationError("API endpoint is required for development environment")
 		}
-		
+
 		// Check if using development API endpoint
 		if as.apiEndpoint == "https://bot-api.zapps.me" {
 			// This is the production endpoint, warn but don't fail
 			// In a real implementation, you might want to log a warning here
 		}
-		
+
 	case types.Production:
 		// In production, we have stricter validation
 		if as.apiEndpoint == "" {
 			return types.NewValidationError("API endpoint is required for production environment")
 		}
-		
+
 		// Ensure we're using the correct production endpoint
 		if as.apiEndpoint != "https://bot-api.zapps.me" {
 			return types.NewValidationError("invalid API endpoint for production environment")
 		}
-		
+
 		// Additional production checks
 		if !as.tokenManager.IsValid() {
 			return types.NewAuthError("valid token is required for production environment")
 		}
-		
+
 	default:
 		return types.NewValidationError("unsupported environment")
 	}
-	
+
 	return nil
 }
 
@@ -160,24 +160,24 @@ func (as *AuthService) CreateAuthenticatedRequest(ctx context.Context, httpMetho
 	if !as.IsAuthenticated() {
 		return nil, types.NewAuthError("not authenticated")
 	}
-	
+
 	// Construct URL with bot token embedded using GetAPIEndpoint
 	url := as.GetAPIEndpoint(apiMethod)
-	
+
 	req, err := http.NewRequestWithContext(ctx, httpMethod, url, nil)
 	if err != nil {
 		return nil, types.NewNetworkError(fmt.Sprintf("failed to create request: %v", err))
 	}
-	
+
 	// Bot token authentication doesn't use Authorization headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
-	
+
 	// Add environment-specific headers
 	if as.environment == types.Development {
 		req.Header.Set("X-Environment", "development")
 	}
-	
+
 	return req, nil
 }
 
@@ -186,12 +186,12 @@ func (as *AuthService) HandleAuthError(err error) error {
 	if err == nil {
 		return nil
 	}
-	
+
 	zaloBotErr, ok := err.(*types.ZaloBotError)
 	if !ok {
 		return err
 	}
-	
+
 	switch zaloBotErr.Type {
 	case types.ErrorTypeAuth:
 		// Clear the token if we get an auth error
@@ -215,7 +215,7 @@ func (as *AuthService) SetEnvironment(env types.Environment) error {
 	if !env.IsValid() {
 		return types.NewValidationError("invalid environment")
 	}
-	
+
 	as.environment = env
 	return as.ValidateEnvironmentConfig()
 }

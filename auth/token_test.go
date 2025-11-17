@@ -7,11 +7,11 @@ import (
 func TestNewTokenManager(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	tm := NewTokenManager(botToken)
-	
+
 	if tm.GetToken() != botToken {
 		t.Errorf("Expected token %s, got %s", botToken, tm.GetToken())
 	}
-	
+
 	if !tm.IsValid() {
 		t.Error("Expected token to be valid")
 	}
@@ -19,7 +19,7 @@ func TestNewTokenManager(t *testing.T) {
 
 func TestTokenManager_ValidateToken(t *testing.T) {
 	tm := NewTokenManager("123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
-	
+
 	tests := []struct {
 		name    string
 		token   string
@@ -76,7 +76,7 @@ func TestTokenManager_ValidateToken(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tm.ValidateToken(tt.token)
@@ -89,24 +89,24 @@ func TestTokenManager_ValidateToken(t *testing.T) {
 
 func TestTokenManager_SetToken(t *testing.T) {
 	tm := NewTokenManager("123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
-	
+
 	// Test setting valid token
 	newToken := "789012:XYZ-GHI5678jklMn-abc90D3f4g567hi89"
 	err := tm.SetToken(newToken)
 	if err != nil {
 		t.Errorf("SetToken() error = %v", err)
 	}
-	
+
 	if tm.GetToken() != newToken {
 		t.Errorf("Expected token %s, got %s", newToken, tm.GetToken())
 	}
-	
+
 	// Test setting invalid token
 	err = tm.SetToken("")
 	if err == nil {
 		t.Error("Expected error for empty token")
 	}
-	
+
 	// Token should remain unchanged after failed set
 	if tm.GetToken() != newToken {
 		t.Errorf("Token should remain unchanged after failed set")
@@ -119,13 +119,13 @@ func TestTokenManager_IsValid(t *testing.T) {
 	if !tm.IsValid() {
 		t.Error("Expected token to be valid")
 	}
-	
+
 	// Test with empty token
 	tm = NewTokenManager("")
 	if tm.IsValid() {
 		t.Error("Expected empty token to be invalid")
 	}
-	
+
 	// Test with invalid format token
 	tm = NewTokenManager("invalid-token")
 	if tm.IsValid() {
@@ -133,24 +133,22 @@ func TestTokenManager_IsValid(t *testing.T) {
 	}
 }
 
-
-
 func TestTokenManager_Clear(t *testing.T) {
 	tm := NewTokenManager("123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
-	
+
 	// Verify token is set
 	if tm.GetToken() == "" {
 		t.Error("Expected token to be set")
 	}
-	
+
 	// Clear token
 	tm.Clear()
-	
+
 	// Verify token is cleared
 	if tm.GetToken() != "" {
 		t.Error("Expected token to be cleared")
 	}
-	
+
 	if tm.IsValid() {
 		t.Error("Expected token to be invalid after clear")
 	}
@@ -159,7 +157,7 @@ func TestTokenManager_Clear(t *testing.T) {
 func TestTokenManager_GetBotToken(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	tm := NewTokenManager(botToken)
-	
+
 	if tm.GetBotToken() != botToken {
 		t.Errorf("Expected bot token %s, got %s", botToken, tm.GetBotToken())
 	}

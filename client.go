@@ -144,11 +144,11 @@ type BotAPI struct {
 	cancel context.CancelFunc
 
 	// Polling state
-	isPolling      bool
-	pollingMu      sync.RWMutex
-	stopPollingCh  chan struct{}
-	updatesChan    chan types.Update
-	pollingWg      sync.WaitGroup
+	isPolling     bool
+	pollingMu     sync.RWMutex
+	stopPollingCh chan struct{}
+	updatesChan   chan types.Update
+	pollingWg     sync.WaitGroup
 }
 
 // New creates a new BotAPI instance with bot token authentication
@@ -192,7 +192,7 @@ func New(botToken string, options ...types.BotOption) (*BotAPI, error) {
 	// Initialize services
 	bot.messageService = services.NewMessageService(authService, config.HTTPClient, config)
 	bot.userService = services.NewUserService(authService, config.HTTPClient, config)
-	
+
 	// Initialize webhook service with empty secret token (can be set later)
 	baseService := services.NewBaseService(authService, config.HTTPClient, config)
 	bot.webhookService = services.NewWebhookService(baseService, "")
@@ -259,7 +259,7 @@ func (b *BotAPI) SetWebhookSecretToken(token string) {
 func (b *BotAPI) Close() {
 	// Stop polling if active
 	b.StopPolling()
-	
+
 	if b.cancel != nil {
 		b.cancel()
 	}
@@ -474,10 +474,10 @@ func (b *BotAPI) GetWebhookInfo() (*types.WebhookInfo, error) {
 
 	// Parse response
 	var apiResp struct {
-		OK          bool                `json:"ok"`
-		Result      *types.WebhookInfo  `json:"result,omitempty"`
-		ErrorCode   int                 `json:"error_code,omitempty"`
-		Description string              `json:"description,omitempty"`
+		OK          bool               `json:"ok"`
+		Result      *types.WebhookInfo `json:"result,omitempty"`
+		ErrorCode   int                `json:"error_code,omitempty"`
+		Description string             `json:"description,omitempty"`
 	}
 	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return nil, types.NewAPIError(resp.StatusCode, "failed to parse response", err.Error())
@@ -530,7 +530,7 @@ func (b *BotAPI) GetUpdatesWithContext(ctx context.Context, config types.UpdateC
 
 	// Construct URL with bot token embedded
 	endpoint := b.authService.GetAPIEndpoint("getUpdates")
-	
+
 	// Add query parameters
 	params := url.Values{}
 	if config.Offset > 0 {
@@ -542,7 +542,7 @@ func (b *BotAPI) GetUpdatesWithContext(ctx context.Context, config types.UpdateC
 	if config.Timeout > 0 {
 		params.Add("timeout", fmt.Sprintf("%d", config.Timeout))
 	}
-	
+
 	if len(params) > 0 {
 		endpoint += "?" + params.Encode()
 	}
@@ -627,10 +627,10 @@ func (b *BotAPI) GetUpdatesChan(config types.UpdateConfig) <-chan types.Update {
 // pollUpdates runs the polling loop
 func (b *BotAPI) pollUpdates(config types.UpdateConfig) {
 	defer b.pollingWg.Done()
-	
+
 	offset := config.Offset
 	pollInterval := 1 * time.Second // Default polling interval
-	
+
 	// Use long polling if timeout is set
 	if config.Timeout > 0 {
 		pollInterval = time.Duration(config.Timeout) * time.Second
@@ -689,7 +689,7 @@ func (b *BotAPI) pollUpdates(config types.UpdateConfig) {
 				if b.config.Debug {
 					fmt.Printf("Error getting updates: %v\n", err)
 				}
-				
+
 				// Wait before retrying
 				select {
 				case <-pollCtx.Done():
@@ -763,7 +763,7 @@ func (b *BotAPI) StopPolling() {
 		b.stopPollingCh = nil
 	}
 	b.pollingMu.Unlock()
-	
+
 	// Wait for polling goroutine to finish
 	b.pollingWg.Wait()
 }

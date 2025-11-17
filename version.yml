@@ -1,0 +1,20 @@
+# Version information for Go Zalo Bot SDK
+# This file is used for automated version management and release processes
+# Version follows Semantic Versioning (https://semver.org/)
+
+version:
+  major: 0
+  minor: 0
+  patch: 2
+  prerelease: ""  # e.g., "beta", "alpha", "rc.1" - empty for stable releases
+
+# SDK metadata
+sdk:
+  name: "Go-Zalo-Bot-SDK"
+  full_version: "0.0.2"  # major.minor.patch[-prerelease]
+  user_agent: "Go-Zalo-Bot-SDK/0.0.2"
+
+# Release information
+release:
+  date: "2025-11-18"
+  branch: "master"
