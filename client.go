@@ -362,7 +362,7 @@ func (b *BotAPI) SetWebhook(config types.WebhookConfig) error {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
+	req.Header.Set("User-Agent", services.UserAgent())
 
 	// Execute request
 	resp, err := b.client.Do(req)
@@ -412,7 +412,7 @@ func (b *BotAPI) DeleteWebhook() error {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
+	req.Header.Set("User-Agent", services.UserAgent())
 
 	// Execute request
 	resp, err := b.client.Do(req)
@@ -457,7 +457,7 @@ func (b *BotAPI) GetWebhookInfo() (*types.WebhookInfo, error) {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
+	req.Header.Set("User-Agent", services.UserAgent())
 
 	// Execute request
 	resp, err := b.client.Do(req)
@@ -488,6 +488,10 @@ func (b *BotAPI) GetWebhookInfo() (*types.WebhookInfo, error) {
 	}
 
 	return apiResp.Result, nil
+}
+
+func (b *BotAPI) GetFieldSignature() string {
+	return b.userService.GetFieldSignature()
 }
 
 // validateWebhookURL validates that the webhook URL is properly formatted and uses HTTPS
@@ -555,7 +559,7 @@ func (b *BotAPI) GetUpdatesWithContext(ctx context.Context, config types.UpdateC
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Go-Zalo-Bot-SDK/1.0")
+	req.Header.Set("User-Agent", services.UserAgent())
 
 	// Execute request
 	resp, err := b.client.Do(req)
