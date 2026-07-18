@@ -37,6 +37,14 @@ func (s *WebhookService) ValidateSignature(payload []byte, signature string) err
 	return utils.ValidateWebhookSignature(payload, signature, s.secretToken)
 }
 
+// ValidateSecret Token validates the webhook secret token
+func (s *WebhookService) ValidateSecretToken(token string) error {
+	if token != s.secretToken {
+		return fmt.Errorf("invalid secret token")
+	}
+	return nil
+}
+
 // RejectInvalidRequest creates an error for rejecting invalid webhook requests
 func (s *WebhookService) RejectInvalidRequest(reason string) error {
 	return utils.RejectInvalidWebhookRequest(reason)
