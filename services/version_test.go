@@ -11,7 +11,7 @@ func TestVersion(t *testing.T) {
 	}
 
 	// Should match the version in version.yml
-	expectedVersion := "0.0.1"
+	expectedVersion := "0.0.4"
 	if version != expectedVersion {
 		t.Errorf("Expected version %s, got %s", expectedVersion, version)
 	}
@@ -24,7 +24,7 @@ func TestUserAgent(t *testing.T) {
 	}
 
 	// Should match the user_agent in version.yml
-	expectedUserAgent := "Go-Zalo-Bot-SDK/0.0.1"
+	expectedUserAgent := "Go-Zalo-Bot-SDK/0.0.4"
 	if userAgent != expectedUserAgent {
 		t.Errorf("Expected user agent %s, got %s", expectedUserAgent, userAgent)
 	}
@@ -50,7 +50,7 @@ func TestVersionComponents(t *testing.T) {
 	}{
 		{"Major", VersionMajor, 0},
 		{"Minor", VersionMinor, 0},
-		{"Patch", VersionPatch, 1},
+		{"Patch", VersionPatch, 4},
 	}
 
 	for _, tt := range tests {
@@ -77,7 +77,7 @@ func TestReleaseDate(t *testing.T) {
 		t.Error("ReleaseDate() returned empty string")
 	}
 
-	expectedDate := "2025-11-17"
+	expectedDate := "2025-11-18"
 	if date != expectedDate {
 		t.Errorf("Expected release date %s, got %s", expectedDate, date)
 	}
@@ -117,16 +117,16 @@ func TestVersionDetails(t *testing.T) {
 	}
 
 	// Verify some specific values
-	if details["version"] != "0.0.1" {
-		t.Errorf("Expected version 0.0.1, got %v", details["version"])
+	if details["version"] != "0.0.4" {
+		t.Errorf("Expected version 0.0.4, got %v", details["version"])
 	}
 
 	if details["sdk_name"] != "Go-Zalo-Bot-SDK" {
 		t.Errorf("Expected SDK name Go-Zalo-Bot-SDK, got %v", details["sdk_name"])
 	}
 
-	if details["user_agent"] != "Go-Zalo-Bot-SDK/0.0.1" {
-		t.Errorf("Expected user agent Go-Zalo-Bot-SDK/0.0.1, got %v", details["user_agent"])
+	if details["user_agent"] != "Go-Zalo-Bot-SDK/0.0.4" {
+		t.Errorf("Expected user agent Go-Zalo-Bot-SDK/0.0.4, got %v", details["user_agent"])
 	}
 }
 
@@ -139,8 +139,8 @@ func TestReloadVersion(t *testing.T) {
 	}
 
 	// Verify version is still correct after reload
-	if Version() != "0.0.1" {
-		t.Errorf("Version mismatch after reload: got %s, want 0.0.1", Version())
+	if Version() != "0.0.4" {
+		t.Errorf("Version mismatch after reload: got %s, want 0.0.4", Version())
 	}
 }
 

@@ -51,8 +51,9 @@ func loadVersionInfo() (*VersionInfo, error) {
 		return nil, fmt.Errorf("failed to determine current file path")
 	}
 
-	// Get the directory containing version.go (module root)
-	moduleRoot := filepath.Dir(currentFile)
+	// version.go lives in services/, one level below the module root where
+	// version.yml is kept.
+	moduleRoot := filepath.Dir(filepath.Dir(currentFile))
 	versionFile := filepath.Join(moduleRoot, "version.yml")
 
 	// Read the version.yml file
