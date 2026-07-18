@@ -325,6 +325,12 @@ func (b *BotAPI) ValidateWebhookSignature(payload []byte, signature string) erro
 	return b.webhookService.ValidateSignature(payload, signature)
 }
 
+// ValidateWebhookSecretToken validates a webhook secret token
+// Delegates to the webhook service
+func (b *BotAPI) ValidateWebhookSecretToken(token string) error {
+	return b.webhookService.ValidateSecretToken(token)
+}
+
 // ParseWebhookUpdate parses a webhook payload into an Update structure
 // Delegates to the webhook service
 func (b *BotAPI) ParseWebhookUpdate(payload []byte) (*types.Update, error) {
