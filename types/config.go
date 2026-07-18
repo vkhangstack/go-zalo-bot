@@ -377,6 +377,7 @@ func (smc *StructuredMessageConfig) Validate() error {
 	return nil
 }
 
+// IsValid validates the chat action type
 func (cat *ChatActionType) IsValid() bool {
 	switch *cat {
 	case ChatActionTyping, ChatActionUploadPhoto:

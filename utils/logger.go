@@ -83,7 +83,7 @@ func NewLogger(config LogConfig) *DefaultLogger {
 	if config.Output == nil {
 		config.Output = os.Stdout
 	}
-	
+
 	return &DefaultLogger{
 		config: config,
 	}
@@ -137,21 +137,21 @@ func (l *DefaultLogger) log(level LogLevel, msg string, fields ...Field) {
 	if !l.IsEnabled(level) {
 		return
 	}
-	
+
 	l.mu.RLock()
 	format := l.config.Format
 	output := l.config.Output
 	l.mu.RUnlock()
-	
+
 	timestamp := time.Now()
-	
+
 	var logLine string
 	if format == LogFormatJSON {
 		logLine = l.formatJSON(timestamp, level, msg, fields)
 	} else {
 		logLine = l.formatText(timestamp, level, msg, fields)
 	}
-	
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	fmt.Fprintln(output, logLine)
@@ -160,17 +160,17 @@ func (l *DefaultLogger) log(level LogLevel, msg string, fields ...Field) {
 // formatText formats log entry as plain text
 func (l *DefaultLogger) formatText(timestamp time.Time, level LogLevel, msg string, fields []Field) string {
 	// Format: 2006-01-02 15:04:05 [LEVEL] message key=value key=value
-	line := fmt.Sprintf("%s [%s] %s", 
-		timestamp.Format("2006-01-02 15:04:05"), 
-		level.String(), 
+	line := fmt.Sprintf("%s [%s] %s",
+		timestamp.Format("2006-01-02 15:04:05"),
+		level.String(),
 		msg)
-	
+
 	if len(fields) > 0 {
 		for _, field := range fields {
 			line += fmt.Sprintf(" %s=%v", field.Key, field.Value)
 		}
 	}
-	
+
 	return line
 }
 
@@ -181,7 +181,7 @@ func (l *DefaultLogger) formatJSON(timestamp time.Time, level LogLevel, msg stri
 		"level":     level.String(),
 		"message":   msg,
 	}
-	
+
 	if len(fields) > 0 {
 		fieldsMap := make(map[string]interface{})
 		for _, field := range fields {
@@ -189,14 +189,14 @@ func (l *DefaultLogger) formatJSON(timestamp time.Time, level LogLevel, msg stri
 		}
 		entry["fields"] = fieldsMap
 	}
-	
+
 	jsonBytes, err := json.Marshal(entry)
 	if err != nil {
 		// Fallback to simple format if JSON marshaling fails
 		return fmt.Sprintf(`{"timestamp":"%s","level":"%s","message":"%s","error":"failed to marshal fields"}`,
 			timestamp.Format(time.RFC3339), level.String(), msg)
 	}
-	
+
 	return string(jsonBytes)
 }
 

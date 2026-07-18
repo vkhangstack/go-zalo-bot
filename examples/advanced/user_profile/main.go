@@ -107,12 +107,14 @@ type UserDirectory struct {
 	users map[string]*types.UserProfile
 }
 
+// NewUserDirectory creates a new empty user directory.
 func NewUserDirectory() *UserDirectory {
 	return &UserDirectory{
 		users: make(map[string]*types.UserProfile),
 	}
 }
 
+// AddUser fetches the user's profile and adds it to the directory.
 func (ud *UserDirectory) AddUser(bot *zalobot.BotAPI, userID string) error {
 	profile, err := bot.GetUserProfile(userID)
 	if err != nil {
@@ -123,11 +125,13 @@ func (ud *UserDirectory) AddUser(bot *zalobot.BotAPI, userID string) error {
 	return nil
 }
 
+// GetUser returns the profile for userID, and whether it was found.
 func (ud *UserDirectory) GetUser(userID string) (*types.UserProfile, bool) {
 	profile, exists := ud.users[userID]
 	return profile, exists
 }
 
+// ListUsers returns all profiles currently in the directory.
 func (ud *UserDirectory) ListUsers() []*types.UserProfile {
 	profiles := make([]*types.UserProfile, 0, len(ud.users))
 	for _, profile := range ud.users {
@@ -142,6 +146,7 @@ type ProfileCache struct {
 	cache map[string]*types.UserProfile
 }
 
+// NewProfileCache creates a new empty profile cache backed by bot.
 func NewProfileCache(bot *zalobot.BotAPI) *ProfileCache {
 	return &ProfileCache{
 		bot:   bot,
@@ -149,6 +154,8 @@ func NewProfileCache(bot *zalobot.BotAPI) *ProfileCache {
 	}
 }
 
+// GetProfile returns the cached profile for userID, fetching and caching it
+// from the API on a cache miss.
 func (pc *ProfileCache) GetProfile(userID string) (*types.UserProfile, error) {
 	// Check cache first
 	if profile, exists := pc.cache[userID]; exists {
@@ -168,37 +175,12 @@ func (pc *ProfileCache) GetProfile(userID string) (*types.UserProfile, error) {
 	return profile, nil
 }
 
+// InvalidateCache removes the cached profile for userID.
 func (pc *ProfileCache) InvalidateCache(userID string) {
 	delete(pc.cache, userID)
 }
 
+// ClearCache removes all cached profiles.
 func (pc *ProfileCache) ClearCache() {
 	pc.cache = make(map[string]*types.UserProfile)
-}
-
-// Example usage of profile cache
-func demonstrateProfileCache(bot *zalobot.BotAPI) {
-	fmt.Println("\n=== Profile Cache Demo ===")
-
-	cache := NewProfileCache(bot)
-
-	userID := "example_user_id"
-
-	// First call - cache miss
-	profile1, err := cache.GetProfile(userID)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		return
-	}
-	fmt.Printf("First call: %s\n", profile1.Name)
-
-	// Second call - cache hit
-	profile2, err := cache.GetProfile(userID)
-	if err != nil {
-		log.Printf("Error: %v", err)
-		return
-	}
-	fmt.Printf("Second call: %s\n", profile2.Name)
-
-	fmt.Println("==========================")
 }

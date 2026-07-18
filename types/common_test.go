@@ -173,12 +173,12 @@ func TestAPIResponse_ParseResult(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var response APIResponse
 			err := json.Unmarshal([]byte(tt.json), &response)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("json.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if !tt.wantErr && response.OK != tt.wantOK {
 				t.Errorf("APIResponse.OK = %v, want %v", response.OK, tt.wantOK)
 			}

@@ -562,9 +562,9 @@ func TestMessageElement_JSON(t *testing.T) {
 		ImageURL: "https://example.com/image.jpg",
 		Buttons: []Button{
 			{
-				Type:    ButtonTypeWebURL,
-				Title:   "Visit",
-				URL:     "https://example.com",
+				Type:  ButtonTypeWebURL,
+				Title: "Visit",
+				URL:   "https://example.com",
 			},
 		},
 	}
@@ -718,9 +718,9 @@ func TestMessageElement_Validate(t *testing.T) {
 				ImageURL: "https://example.com/image.jpg",
 				Buttons: []Button{
 					{
-						Type:    ButtonTypeWebURL,
-						Title:   "Visit",
-						URL:     "https://example.com",
+						Type:  ButtonTypeWebURL,
+						Title: "Visit",
+						URL:   "https://example.com",
 					},
 				},
 			},

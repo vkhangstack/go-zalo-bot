@@ -49,9 +49,9 @@ type PaginatedResponse struct {
 
 // RateLimitInfo represents rate limiting information from API response headers
 type RateLimitInfo struct {
-	Limit     int       // Maximum number of requests allowed
-	Remaining int       // Number of requests remaining
-	Reset     time.Time // Time when the rate limit resets
+	Limit      int           // Maximum number of requests allowed
+	Remaining  int           // Number of requests remaining
+	Reset      time.Time     // Time when the rate limit resets
 	RetryAfter time.Duration // Duration to wait before retrying (for 429 responses)
 }
 

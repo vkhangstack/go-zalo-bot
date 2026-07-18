@@ -34,12 +34,12 @@ func (tm *TokenManager) SetToken(botToken string) error {
 	if err := tm.ValidateToken(botToken); err != nil {
 		return err
 	}
-	
+
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	
+
 	tm.botToken = botToken
-	
+
 	return nil
 }
 
@@ -48,16 +48,16 @@ func (tm *TokenManager) ValidateToken(token string) error {
 	if token == "" {
 		return types.NewValidationError("bot token cannot be empty")
 	}
-	
+
 	// Remove any whitespace
 	token = strings.TrimSpace(token)
-	
+
 	// Bot token should be in format: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	// At minimum, it should contain a colon separating bot ID and token
 	if len(token) < 10 {
 		return types.NewValidationError("bot token is too short")
 	}
-	
+
 	colonIndex := -1
 	for i, char := range token {
 		if char == ':' {
@@ -65,12 +65,12 @@ func (tm *TokenManager) ValidateToken(token string) error {
 			break
 		}
 	}
-	
+
 	// Must have a colon and both parts should be non-empty
 	if colonIndex <= 0 || colonIndex >= len(token)-1 {
 		return types.NewValidationError("invalid bot token format - must contain ':' separator")
 	}
-	
+
 	// Bot ID part should be numeric
 	botIDPart := token[:colonIndex]
 	for _, char := range botIDPart {
@@ -78,19 +78,19 @@ func (tm *TokenManager) ValidateToken(token string) error {
 			return types.NewValidationError("invalid bot token format - bot ID must be numeric")
 		}
 	}
-	
+
 	// Token part should be at least 10 characters
 	tokenPart := token[colonIndex+1:]
 	if len(tokenPart) < 10 {
 		return types.NewValidationError("invalid bot token format - token part too short")
 	}
-	
+
 	// Check for valid characters in token part (alphanumeric, hyphens, underscores)
 	validTokenRegex := regexp.MustCompile(`^[a-zA-Z0-9\-_]+$`)
 	if !validTokenRegex.MatchString(tokenPart) {
 		return types.NewValidationError("invalid bot token format - token part contains invalid characters")
 	}
-	
+
 	return nil
 }
 
@@ -99,11 +99,11 @@ func (tm *TokenManager) ValidateToken(token string) error {
 func (tm *TokenManager) IsValid() bool {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	if tm.botToken == "" {
 		return false
 	}
-	
+
 	return tm.ValidateToken(tm.botToken) == nil
 }
 
@@ -116,6 +116,6 @@ func (tm *TokenManager) GetBotToken() string {
 func (tm *TokenManager) Clear() {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	
+
 	tm.botToken = ""
 }

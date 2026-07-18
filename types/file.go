@@ -1,5 +1,6 @@
 package types
 
+// Photo represents an image sent or received in a message.
 type Photo struct {
 	FileID       string `json:"file_id"`
 	FileUniqueID string `json:"file_unique_id"`
@@ -10,6 +11,7 @@ type Photo struct {
 	URL string `json:"url,omitempty"`
 }
 
+// Sticker represents a sticker sent or received in a message.
 type Sticker struct {
 	FileID       string `json:"file_id"`
 	FileUniqueID string `json:"file_unique_id"`

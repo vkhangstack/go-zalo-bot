@@ -169,7 +169,7 @@ func demonstrateRateLimitHandling(bot *zalobot.BotAPI, chatID string) {
 		}
 
 		log.Printf("Message %d sent successfully", i+1)
-		
+
 		// Add a small delay between messages to avoid rate limiting
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -237,10 +237,13 @@ type ErrorHandler struct {
 	bot *zalobot.BotAPI
 }
 
+// NewErrorHandler creates a new error handler wrapping bot.
 func NewErrorHandler(bot *zalobot.BotAPI) *ErrorHandler {
 	return &ErrorHandler{bot: bot}
 }
 
+// SendMessageWithRetry sends a text message, retrying on retryable errors up
+// to maxRetries times with exponential backoff.
 func (eh *ErrorHandler) SendMessageWithRetry(chatID, text string, maxRetries int) error {
 	var lastErr error
 

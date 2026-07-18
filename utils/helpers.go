@@ -47,7 +47,7 @@ const (
 var (
 	// userIDPattern matches valid user IDs (alphanumeric and underscores, 1-64 chars)
 	userIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_]{1,64}$`)
-	
+
 	// Supported image MIME types
 	supportedImageMimeTypes = map[string]bool{
 		"image/jpeg": true,
@@ -56,14 +56,14 @@ var (
 		"image/gif":  true,
 		"image/webp": true,
 	}
-	
+
 	// Supported video MIME types
 	supportedVideoMimeTypes = map[string]bool{
 		"video/mp4":  true,
 		"video/mpeg": true,
 		"video/webm": true,
 	}
-	
+
 	// Supported audio MIME types
 	supportedAudioMimeTypes = map[string]bool{
 		"audio/mpeg": true,
@@ -71,7 +71,7 @@ var (
 		"audio/wav":  true,
 		"audio/ogg":  true,
 	}
-	
+
 	// Supported file extensions
 	supportedFileExtensions = map[string]bool{
 		".pdf":  true,
@@ -127,11 +127,11 @@ func ValidateUserID(userID string) error {
 	if userID == "" {
 		return ErrInvalidUserID
 	}
-	
+
 	if !userIDPattern.MatchString(userID) {
 		return fmt.Errorf("%w: must be alphanumeric with underscores, 1-64 characters", ErrInvalidUserID)
 	}
-	
+
 	return nil
 }
 
@@ -141,11 +141,11 @@ func ValidateRecipientID(recipientID string) error {
 	if recipientID == "" {
 		return ErrInvalidRecipientID
 	}
-	
+
 	if !userIDPattern.MatchString(recipientID) {
 		return fmt.Errorf("%w: must be alphanumeric with underscores, 1-64 characters", ErrInvalidRecipientID)
 	}
-	
+
 	return nil
 }
 
@@ -155,18 +155,18 @@ func ValidateMessageContent(content string) error {
 	if content == "" {
 		return ErrInvalidMessageContent
 	}
-	
+
 	// Check UTF-8 validity
 	if !utf8.ValidString(content) {
 		return fmt.Errorf("%w: content must be valid UTF-8", ErrInvalidMessageContent)
 	}
-	
+
 	// Check length (count runes, not bytes, to properly handle Unicode)
 	runeCount := utf8.RuneCountInString(content)
 	if runeCount > MaxMessageLength {
 		return fmt.Errorf("%w: %d characters (max %d)", ErrMessageTooLong, runeCount, MaxMessageLength)
 	}
-	
+
 	return nil
 }
 
@@ -201,12 +201,12 @@ func ValidateUnicodeSupport(text string) error {
 	if !utf8.ValidString(text) {
 		return fmt.Errorf("text contains invalid UTF-8 sequences")
 	}
-	
+
 	// Check for replacement characters which indicate encoding issues
 	if strings.Contains(text, "\uFFFD") {
 		return fmt.Errorf("text contains replacement characters, indicating encoding issues")
 	}
-	
+
 	return nil
 }
 
@@ -215,11 +215,11 @@ func ValidateImageMimeType(mimeType string) error {
 	if mimeType == "" {
 		return ErrInvalidMimeType
 	}
-	
+
 	if !supportedImageMimeTypes[strings.ToLower(mimeType)] {
 		return fmt.Errorf("%w: %s is not a supported image format", ErrInvalidMimeType, mimeType)
 	}
-	
+
 	return nil
 }
 
@@ -228,11 +228,11 @@ func ValidateVideoMimeType(mimeType string) error {
 	if mimeType == "" {
 		return ErrInvalidMimeType
 	}
-	
+
 	if !supportedVideoMimeTypes[strings.ToLower(mimeType)] {
 		return fmt.Errorf("%w: %s is not a supported video format", ErrInvalidMimeType, mimeType)
 	}
-	
+
 	return nil
 }
 
@@ -241,11 +241,11 @@ func ValidateAudioMimeType(mimeType string) error {
 	if mimeType == "" {
 		return ErrInvalidMimeType
 	}
-	
+
 	if !supportedAudioMimeTypes[strings.ToLower(mimeType)] {
 		return fmt.Errorf("%w: %s is not a supported audio format", ErrInvalidMimeType, mimeType)
 	}
-	
+
 	return nil
 }
 
@@ -254,16 +254,16 @@ func ValidateFileExtension(filename string) error {
 	if filename == "" {
 		return ErrInvalidFileFormat
 	}
-	
+
 	ext := strings.ToLower(filepath.Ext(filename))
 	if ext == "" {
 		return fmt.Errorf("%w: file has no extension", ErrInvalidFileFormat)
 	}
-	
+
 	if !supportedFileExtensions[ext] {
 		return fmt.Errorf("%w: %s is not a supported file extension", ErrInvalidFileFormat, ext)
 	}
-	
+
 	return nil
 }
 
@@ -272,7 +272,7 @@ func ValidateFileSize(size int64, fileType string) error {
 	if size <= 0 {
 		return fmt.Errorf("%w: file size must be positive", ErrFileTooLarge)
 	}
-	
+
 	var maxSize int64
 	switch strings.ToLower(fileType) {
 	case "image":
@@ -286,12 +286,12 @@ func ValidateFileSize(size int64, fileType string) error {
 	default:
 		maxSize = MaxFileSize
 	}
-	
+
 	if size > maxSize {
-		return fmt.Errorf("%w: %d bytes exceeds maximum of %d bytes for %s", 
+		return fmt.Errorf("%w: %d bytes exceeds maximum of %d bytes for %s",
 			ErrFileTooLarge, size, maxSize, fileType)
 	}
-	
+
 	return nil
 }
 
@@ -300,22 +300,22 @@ func ValidateURL(urlStr string) error {
 	if urlStr == "" {
 		return ErrInvalidURL
 	}
-	
+
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidURL, err.Error())
 	}
-	
+
 	// Check for valid scheme
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
 		return fmt.Errorf("%w: scheme must be http or https", ErrInvalidURL)
 	}
-	
+
 	// Check for valid host
 	if parsedURL.Host == "" {
 		return fmt.Errorf("%w: missing host", ErrInvalidURL)
 	}
-	
+
 	return nil
 }
 
@@ -323,16 +323,16 @@ func ValidateURL(urlStr string) error {
 func FormatMessage(text string) string {
 	// Trim leading and trailing whitespace
 	text = strings.TrimSpace(text)
-	
+
 	// Normalize line breaks
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
-	
+
 	// Remove excessive consecutive line breaks (more than 2)
 	for strings.Contains(text, "\n\n\n") {
 		text = strings.ReplaceAll(text, "\n\n\n", "\n\n")
 	}
-	
+
 	return text
 }
 
@@ -341,15 +341,15 @@ func TruncateMessage(text string, maxLength int) string {
 	if maxLength <= 0 {
 		maxLength = MaxMessageLength
 	}
-	
+
 	runes := []rune(text)
 	if len(runes) <= maxLength {
 		return text
 	}
-	
+
 	// Truncate to maxLength
 	truncated := runes[:maxLength]
-	
+
 	// Try to find the last space to avoid cutting words
 	lastSpace := -1
 	for i := len(truncated) - 1; i >= 0; i-- {
@@ -358,12 +358,12 @@ func TruncateMessage(text string, maxLength int) string {
 			break
 		}
 	}
-	
+
 	// If we found a space in the last 20% of the text, cut there
 	if lastSpace > int(float64(maxLength)*0.8) {
 		truncated = truncated[:lastSpace]
 	}
-	
+
 	return string(truncated) + "..."
 }
 
@@ -376,7 +376,7 @@ func SanitizeText(text string) string {
 			builder.WriteRune(r)
 		}
 	}
-	
+
 	return builder.String()
 }
 

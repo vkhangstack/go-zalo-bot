@@ -120,9 +120,9 @@ func demonstrateStructuredMessage(bot *zalobot.BotAPI, chatID string) {
 					ImageURL: "https://example.com/product1.jpg",
 					Buttons: []types.Button{
 						{
-							Type:    types.ButtonTypeWebURL,
-							Title:   "View Details",
-							URL:     "https://example.com/product1",
+							Type:  types.ButtonTypeWebURL,
+							Title: "View Details",
+							URL:   "https://example.com/product1",
 						},
 						{
 							Type:    types.ButtonTypePostback,
@@ -137,9 +137,9 @@ func demonstrateStructuredMessage(bot *zalobot.BotAPI, chatID string) {
 					ImageURL: "https://example.com/product2.jpg",
 					Buttons: []types.Button{
 						{
-							Type:    types.ButtonTypeWebURL,
-							Title:   "View Details",
-							URL:     "https://example.com/product2",
+							Type:  types.ButtonTypeWebURL,
+							Title: "View Details",
+							URL:   "https://example.com/product2",
 						},
 						{
 							Type:    types.ButtonTypePostback,
@@ -185,9 +185,9 @@ func demonstrateButtonMessage(bot *zalobot.BotAPI, chatID string) {
 							Payload: "OPTION_2",
 						},
 						{
-							Type:    types.ButtonTypeWebURL,
-							Title:   "Learn More",
-							URL:     "https://example.com/learn-more",
+							Type:  types.ButtonTypeWebURL,
+							Title: "Learn More",
+							URL:   "https://example.com/learn-more",
 						},
 					},
 				},

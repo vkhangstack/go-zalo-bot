@@ -239,6 +239,7 @@ func (s *MessageService) SendAudio(ctx context.Context, chatID, audioURL, mimeTy
 	return s.Send(ctx, messageConfig)
 }
 
+// SendChatAction sends a chat action (e.g. "typing") to indicate activity to the recipient
 func (s *MessageService) SendChatAction(ctx context.Context, chatID string, action types.ChatActionType) error {
 	// Validate recipient ID
 	if err := validateRecipientID(chatID); err != nil {

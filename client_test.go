@@ -11,11 +11,11 @@ import (
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		name      string
-		botToken  string
-		options   []types.BotOption
-		wantErr   bool
-		errType   types.ErrorType
+		name     string
+		botToken string
+		options  []types.BotOption
+		wantErr  bool
+		errType  types.ErrorType
 	}{
 		{
 			name:     "valid bot token",
@@ -60,13 +60,13 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bot, err := New(tt.botToken, tt.options...)
-			
+
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("New() expected error but got none")
 					return
 				}
-				
+
 				if zaloBotErr, ok := err.(*types.ZaloBotError); ok {
 					if zaloBotErr.Type != tt.errType {
 						t.Errorf("New() error type = %v, want %v", zaloBotErr.Type, tt.errType)
@@ -74,29 +74,29 @@ func TestNew(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Errorf("New() unexpected error = %v", err)
 				return
 			}
-			
+
 			if bot == nil {
 				t.Error("New() returned nil bot")
 				return
 			}
-			
+
 			// Verify bot token is set correctly
 			if bot.GetBotToken() != tt.botToken {
 				t.Errorf("GetBotToken() = %v, want %v", bot.GetBotToken(), tt.botToken)
 			}
-			
+
 			// Verify config is set
 			config := bot.GetConfig()
 			if config == nil {
 				t.Error("GetConfig() returned nil")
 				return
 			}
-			
+
 			if config.BotToken != tt.botToken {
 				t.Errorf("Config.BotToken = %v, want %v", config.BotToken, tt.botToken)
 			}
@@ -152,57 +152,57 @@ func TestBotAPI_GetAPIEndpoint(t *testing.T) {
 
 func TestBotAPI_WithOptions(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	t.Run("with custom timeout", func(t *testing.T) {
 		customTimeout := 15 * time.Second
 		bot, err := New(botToken, types.WithTimeout(customTimeout))
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		config := bot.GetConfig()
 		if config.Timeout != customTimeout {
 			t.Errorf("Config.Timeout = %v, want %v", config.Timeout, customTimeout)
 		}
 	})
-	
+
 	t.Run("with debug mode", func(t *testing.T) {
 		bot, err := New(botToken, types.WithDebug())
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		config := bot.GetConfig()
 		if !config.Debug {
 			t.Error("Config.Debug = false, want true")
 		}
 	})
-	
+
 	t.Run("with custom base URL", func(t *testing.T) {
 		customURL := "https://custom-api.example.com"
 		bot, err := New(botToken, types.WithBaseURL(customURL))
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		config := bot.GetConfig()
 		if config.BaseURL != customURL {
 			t.Errorf("Config.BaseURL = %v, want %v", config.BaseURL, customURL)
 		}
 	})
-	
+
 	t.Run("with environment", func(t *testing.T) {
 		bot, err := New(botToken, types.WithEnvironment(types.Development))
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		config := bot.GetConfig()
 		if config.Environment != types.Development {
 			t.Errorf("Config.Environment = %v, want %v", config.Environment, types.Development)
 		}
 	})
-	
+
 	t.Run("with custom HTTP client", func(t *testing.T) {
 		customClient := &http.Client{
 			Timeout: 5 * time.Second,
@@ -211,12 +211,12 @@ func TestBotAPI_WithOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		if bot.GetHTTPClient() != customClient {
 			t.Error("GetHTTPClient() did not return custom client")
 		}
 	})
-	
+
 	t.Run("with multiple options", func(t *testing.T) {
 		bot, err := New(botToken,
 			types.WithDebug(),
@@ -227,7 +227,7 @@ func TestBotAPI_WithOptions(t *testing.T) {
 		if err != nil {
 			t.Fatalf("New() error = %v", err)
 		}
-		
+
 		config := bot.GetConfig()
 		if !config.Debug {
 			t.Error("Config.Debug = false, want true")
@@ -250,16 +250,16 @@ func TestBotAPI_Close(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	
+
 	// Get context before closing
 	ctx := bot.GetContext()
 	if ctx == nil {
 		t.Fatal("GetContext() returned nil")
 	}
-	
+
 	// Close the bot
 	bot.Close()
-	
+
 	// Verify context is cancelled
 	select {
 	case <-ctx.Done():
@@ -447,7 +447,7 @@ func TestBotAPI_SendMessageIntegration(t *testing.T) {
 			ChatID: "user123",
 			Text:   "Hello, World!",
 		}
-		
+
 		// We can't test the actual API call without a mock server,
 		// but we can verify the method signature is correct
 		_ = bot.SendMessage
@@ -504,7 +504,7 @@ func TestBotAPI_WebhookIntegration(t *testing.T) {
 	t.Run("webhook secret token can be set", func(t *testing.T) {
 		secretToken := "my-secret-token"
 		bot.SetWebhookSecretToken(secretToken)
-		
+
 		webhookService := bot.GetWebhookService()
 		if webhookService.GetSecretToken() != secretToken {
 			t.Errorf("GetSecretToken() = %v, want %v", webhookService.GetSecretToken(), secretToken)
@@ -534,7 +534,7 @@ func TestBotAPI_PollingIntegration(t *testing.T) {
 			Limit:   10,
 			Timeout: 0,
 		}
-		
+
 		// Verify the method exists
 		_ = bot.GetUpdates
 		_ = config
@@ -552,7 +552,7 @@ func TestBotAPI_PollingIntegration(t *testing.T) {
 			Limit:   10,
 			Timeout: 0,
 		}
-		
+
 		updatesChan := bot.GetUpdatesChan(config)
 		if updatesChan == nil {
 			t.Fatal("GetUpdatesChan() returned nil")
@@ -567,7 +567,7 @@ func TestBotAPI_PollingIntegration(t *testing.T) {
 
 		// Stop polling
 		bot.StopPolling()
-		
+
 		// Give it a moment to stop
 		time.Sleep(100 * time.Millisecond)
 
@@ -594,9 +594,9 @@ func TestBotAPI_PollingIntegration(t *testing.T) {
 			Limit:   10,
 			Timeout: 0,
 		}
-		
+
 		_ = bot2.GetUpdatesChan(config)
-		
+
 		// Give it a moment to start
 		time.Sleep(100 * time.Millisecond)
 
@@ -606,7 +606,7 @@ func TestBotAPI_PollingIntegration(t *testing.T) {
 
 		// Close the bot
 		bot2.Close()
-		
+
 		// Give it a moment to stop
 		time.Sleep(100 * time.Millisecond)
 
@@ -630,7 +630,7 @@ func TestBotAPI_PollingWithInvalidConfig(t *testing.T) {
 			Limit:   -1, // Invalid limit, will be corrected by validation
 			Timeout: 0,
 		}
-		
+
 		// After validation, limit will be set to default (100)
 		// So this should start polling normally
 		updatesChan := bot.GetUpdatesChan(config)
@@ -660,14 +660,14 @@ func TestBotAPI_ConcurrentPolling(t *testing.T) {
 			Limit:   10,
 			Timeout: 0,
 		}
-		
+
 		ch1 := bot.GetUpdatesChan(config)
-		
+
 		// Give it a moment to start
 		time.Sleep(50 * time.Millisecond)
-		
+
 		ch2 := bot.GetUpdatesChan(config)
-		
+
 		// Both should return the same channel
 		if ch1 != ch2 {
 			t.Error("GetUpdatesChan() returned different channels")
@@ -689,16 +689,16 @@ func TestBotAPI_SetWebhookWithSecretToken(t *testing.T) {
 	t.Run("SetWebhook sets secret token in webhook service", func(t *testing.T) {
 		// Note: This test will fail at the API call level without a mock server,
 		// but we can verify the secret token is set before the API call fails
-		
+
 		secretToken := "test-secret-token"
 		config := types.WebhookConfig{
 			URL:         "https://example.com/webhook",
 			SecretToken: secretToken,
 		}
-		
+
 		// This will fail at the API call, but that's expected
 		_ = bot.SetWebhook(config)
-		
+
 		// The secret token should still be set even if the API call fails
 		// (it's set after successful API response, so this test is limited)
 	})
@@ -714,20 +714,20 @@ func TestBotAPI_CompleteMessageFlow(t *testing.T) {
 
 	t.Run("complete flow methods are accessible", func(t *testing.T) {
 		// Verify all methods needed for a complete message flow exist
-		
+
 		// 1. Send a message
 		_ = bot.SendMessage
-		
+
 		// 2. Get user profile
 		_ = bot.GetUserProfile
-		
+
 		// 3. Send rich media
 		_ = bot.SendImage
 		_ = bot.SendFile
-		
+
 		// 4. Send structured message
 		_ = bot.SendTemplate
-		
+
 		// All methods exist and are accessible
 	})
 }
@@ -742,13 +742,13 @@ func TestBotAPI_CompleteWebhookFlow(t *testing.T) {
 
 	t.Run("complete webhook flow methods are accessible", func(t *testing.T) {
 		// Verify all methods needed for a complete webhook flow exist
-		
+
 		// 1. Set webhook
 		_ = bot.SetWebhook
-		
+
 		// 2. Set secret token
 		_ = bot.SetWebhookSecretToken
-		
+
 		// 3. Process webhook
 		_ = bot.ProcessWebhook
 
@@ -757,13 +757,13 @@ func TestBotAPI_CompleteWebhookFlow(t *testing.T) {
 
 		// 5. Parse update
 		_ = bot.ParseWebhookUpdate
-		
+
 		// 6. Get webhook info
 		_ = bot.GetWebhookInfo
-		
+
 		// 7. Delete webhook
 		_ = bot.DeleteWebhook
-		
+
 		// All methods exist and are accessible
 	})
 }
@@ -778,16 +778,16 @@ func TestBotAPI_CompletePollingFlow(t *testing.T) {
 
 	t.Run("complete polling flow methods are accessible", func(t *testing.T) {
 		// Verify all methods needed for a complete polling flow exist
-		
+
 		// 1. Get updates
 		_ = bot.GetUpdates
-		
+
 		// 2. Get updates channel
 		_ = bot.GetUpdatesChan
-		
+
 		// 3. Check polling status
 		_ = bot.IsPolling
-		
+
 		// 4. Stop polling
 		_ = bot.StopPolling
 

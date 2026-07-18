@@ -80,13 +80,13 @@ func (rc *RetryConfig) ShouldRetry(err error) bool {
 		// Non-ZaloBotError, assume it's a network error and retry
 		return true
 	}
-	
+
 	for _, retryableType := range rc.RetryableErrors {
 		if zaloBotErr.Type == retryableType {
 			return true
 		}
 	}
-	
+
 	return zaloBotErr.IsRetryable()
 }
 
@@ -95,7 +95,7 @@ func (rc *RetryConfig) NextDelay(attempt int) time.Duration {
 	if attempt <= 0 {
 		return rc.InitialDelay
 	}
-	
+
 	delay := rc.InitialDelay
 	for i := 0; i < attempt; i++ {
 		delay = time.Duration(float64(delay) * rc.BackoffFactor)
@@ -104,7 +104,7 @@ func (rc *RetryConfig) NextDelay(attempt int) time.Duration {
 			break
 		}
 	}
-	
+
 	return delay
 }
 

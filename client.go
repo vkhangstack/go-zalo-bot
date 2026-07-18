@@ -494,6 +494,8 @@ func (b *BotAPI) GetWebhookInfo() (*types.WebhookInfo, error) {
 	return apiResp.Result, nil
 }
 
+// GetFieldSecretToken returns the header field name for the webhook secret
+// token (X-Bot-Api-Secret-Token).
 func (b *BotAPI) GetFieldSecretToken() string {
 	return b.userService.GetFieldSecretToken()
 }
