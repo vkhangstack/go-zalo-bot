@@ -239,6 +239,42 @@ func (s *MessageService) SendAudio(ctx context.Context, chatID, audioURL, mimeTy
 	return s.Send(ctx, messageConfig)
 }
 
+func (s *MessageService) SendChatAction(ctx context.Context, chatID string, action types.ChatActionType) error {
+	// Validate recipient ID
+	if err := validateRecipientID(chatID); err != nil {
+		return err
+	}
+
+	// Validate action type
+	if !action.IsValid() {
+		return types.NewValidationError("Invalid chat action type")
+	}
+
+	// Prepare request payload
+	payload := map[string]interface{}{
+		"chat_id": chatID,
+		"action":  action,
+	}
+
+	// Execute request with bot token URL construction
+	apiReq := &APIRequest{
+		Method:    http.MethodPost,
+		APIMethod: "sendChatAction",
+		Body:      payload,
+	}
+
+	resp, err := s.DoRequest(ctx, apiReq)
+	if err != nil {
+		return err
+	}
+
+	if !resp.OK {
+		return types.NewAPIError(0, "Failed to send chat action", resp.Description)
+	}
+
+	return nil
+}
+
 // SendTemplate sends a structured message with buttons, quick replies, and interactive elements
 func (s *MessageService) SendTemplate(ctx context.Context, config types.StructuredMessageConfig) (*types.Message, error) {
 	// Validate config

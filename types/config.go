@@ -8,14 +8,14 @@ import (
 
 // Config represents the configuration for the Zalo Bot SDK
 type Config struct {
-	BotToken    string        // Bot token for authentication
-	BaseURL     string        // Base API URL (default: https://bot-api.zapps.me)
+	BotToken    string // Bot token for authentication
+	BaseURL     string // Base API URL (default: https://bot-api.zapps.me)
 	Debug       bool
 	Timeout     time.Duration
 	Retries     int
-	Environment Environment   // Development or Production
+	Environment Environment // Development or Production
 	HTTPClient  *http.Client
-	RetryConfig *RetryConfig  // Retry configuration for error handling
+	RetryConfig *RetryConfig // Retry configuration for error handling
 }
 
 // MessageConfig represents configuration for sending messages
@@ -128,10 +128,10 @@ func (e Environment) String() string {
 type MessageType string
 
 const (
-	MessageTypeText       MessageType = "text"
-	MessageTypeImage      MessageType = "image"
-	MessageTypeFile       MessageType = "file"
-	MessageTypeTemplate   MessageType = "template"
+	MessageTypeText        MessageType = "text"
+	MessageTypeImage       MessageType = "image"
+	MessageTypeFile        MessageType = "file"
+	MessageTypeTemplate    MessageType = "template"
 	MessageTypeInteractive MessageType = "interactive"
 )
 
@@ -164,7 +164,7 @@ func (c *Config) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	// Validate bot token format (should be like "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
 	if !isValidBotTokenFormat(c.BotToken) {
 		return &ZaloBotError{
@@ -173,23 +173,23 @@ func (c *Config) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	if c.BaseURL == "" {
 		c.BaseURL = "https://bot-api.zapps.me"
 	}
-	
+
 	if c.Timeout == 0 {
 		c.Timeout = 30 * time.Second
 	}
-	
+
 	if c.Retries == 0 {
 		c.Retries = 3
 	}
-	
+
 	if c.Environment == "" {
 		c.Environment = Production
 	}
-	
+
 	if !c.Environment.IsValid() {
 		return &ZaloBotError{
 			Code:    400,
@@ -197,17 +197,17 @@ func (c *Config) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	if c.HTTPClient == nil {
 		c.HTTPClient = &http.Client{
 			Timeout: c.Timeout,
 		}
 	}
-	
+
 	if c.RetryConfig == nil {
 		c.RetryConfig = DefaultRetryConfig()
 	}
-	
+
 	return nil
 }
 
@@ -218,7 +218,7 @@ func isValidBotTokenFormat(token string) bool {
 	if len(token) < 10 {
 		return false
 	}
-	
+
 	colonIndex := -1
 	for i, char := range token {
 		if char == ':' {
@@ -226,12 +226,12 @@ func isValidBotTokenFormat(token string) bool {
 			break
 		}
 	}
-	
+
 	// Must have a colon and both parts should be non-empty
 	if colonIndex <= 0 || colonIndex >= len(token)-1 {
 		return false
 	}
-	
+
 	// Bot ID part should be numeric
 	botIDPart := token[:colonIndex]
 	for _, char := range botIDPart {
@@ -239,13 +239,13 @@ func isValidBotTokenFormat(token string) bool {
 			return false
 		}
 	}
-	
+
 	// Token part should be at least 10 characters
 	tokenPart := token[colonIndex+1:]
 	if len(tokenPart) < 10 {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -258,11 +258,11 @@ func (mc *MessageConfig) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	if mc.MessageType == "" {
 		mc.MessageType = MessageTypeText
 	}
-	
+
 	if !mc.MessageType.IsValid() {
 		return &ZaloBotError{
 			Code:    400,
@@ -270,7 +270,7 @@ func (mc *MessageConfig) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	if mc.MessageType == MessageTypeText && mc.Text == "" {
 		return &ZaloBotError{
 			Code:    400,
@@ -278,7 +278,7 @@ func (mc *MessageConfig) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -291,7 +291,7 @@ func (wc *WebhookConfig) Validate() error {
 			Type:    ErrorTypeValidation,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -300,15 +300,15 @@ func (uc *UpdateConfig) Validate() error {
 	if uc.Limit <= 0 {
 		uc.Limit = 100
 	}
-	
+
 	if uc.Limit > 100 {
 		uc.Limit = 100
 	}
-	
+
 	if uc.Timeout < 0 {
 		uc.Timeout = 0
 	}
-	
+
 	return nil
 }
 
@@ -317,11 +317,11 @@ func (imc *ImageMessageConfig) Validate() error {
 	if imc.ChatID == "" {
 		return NewValidationError("ChatID is required for image messages")
 	}
-	
+
 	if imc.ImageURL == "" {
 		return NewValidationError("ImageURL is required for image messages")
 	}
-	
+
 	// Validate MIME type if provided
 	if imc.MimeType != "" {
 		validMimeTypes := []string{"image/jpeg", "image/png", "image/gif", "image/webp"}
@@ -336,7 +336,7 @@ func (imc *ImageMessageConfig) Validate() error {
 			return NewValidationError("Invalid MIME type for image message")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -345,21 +345,21 @@ func (fmc *FileMessageConfig) Validate() error {
 	if fmc.ChatID == "" {
 		return NewValidationError("ChatID is required for file messages")
 	}
-	
+
 	if fmc.FileURL == "" {
 		return NewValidationError("FileURL is required for file messages")
 	}
-	
+
 	if fmc.FileName == "" {
 		return NewValidationError("FileName is required for file messages")
 	}
-	
+
 	// Validate file size (max 50MB)
 	const maxFileSize = 50 * 1024 * 1024 // 50MB
 	if fmc.Size > maxFileSize {
 		return NewValidationError("File size exceeds maximum limit of 50MB")
 	}
-	
+
 	return nil
 }
 
@@ -368,11 +368,20 @@ func (smc *StructuredMessageConfig) Validate() error {
 	if smc.ChatID == "" {
 		return NewValidationError("ChatID is required for structured messages")
 	}
-	
+
 	// Validate structured message content
 	if err := smc.StructuredMessage.Validate(); err != nil {
 		return err
 	}
-	
+
 	return nil
+}
+
+func (cat *ChatActionType) IsValid() bool {
+	switch *cat {
+	case ChatActionTyping, ChatActionUploadPhoto:
+		return true
+	default:
+		return false
+	}
 }

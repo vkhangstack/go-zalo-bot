@@ -21,23 +21,23 @@ func setupTestMessageService(t *testing.T, botToken string) (*MessageService, *t
 		Environment: types.Production,
 		HTTPClient:  &http.Client{Timeout: 30 * time.Second},
 	}
-	
+
 	if err := config.Validate(); err != nil {
 		t.Fatalf("config validation failed: %v", err)
 	}
-	
+
 	authService, err := auth.NewAuthService(config)
 	if err != nil {
 		t.Fatalf("failed to create auth service: %v", err)
 	}
-	
+
 	service := NewMessageService(authService, config.HTTPClient, config)
 	return service, config
 }
 
 func TestMessageService_Send_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify URL contains bot token
@@ -45,18 +45,18 @@ func TestMessageService_Send_Success(t *testing.T) {
 		if r.URL.Path != expectedPath {
 			t.Errorf("Request path = %v, want %v", r.URL.Path, expectedPath)
 		}
-		
+
 		// Verify method
 		if r.Method != http.MethodPost {
 			t.Errorf("Request method = %v, want %v", r.Method, http.MethodPost)
 		}
-		
+
 		// Parse request body
 		var payload map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			t.Errorf("Failed to decode request body: %v", err)
 		}
-		
+
 		// Verify payload
 		if payload["chat_id"] != "user123" {
 			t.Errorf("chat_id = %v, want user123", payload["chat_id"])
@@ -64,7 +64,7 @@ func TestMessageService_Send_Success(t *testing.T) {
 		if payload["text"] != "Hello, World!" {
 			t.Errorf("text = %v, want Hello, World!", payload["text"])
 		}
-		
+
 		// Return success response - real sendMessage API only returns
 		// {"message_id","date"}, see https://bot.zapps.me/docs/apis/sendMessage/
 		resp := APIResponse{
@@ -113,18 +113,18 @@ func TestMessageService_Send_Success(t *testing.T) {
 
 func TestMessageService_Send_UnicodeSupport(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&payload)
-		
+
 		// Verify Vietnamese text is properly handled
 		expectedText := "Xin chào! Đây là tin nhắn tiếng Việt"
 		if payload["text"] != expectedText {
 			t.Errorf("text = %v, want %v", payload["text"], expectedText)
 		}
-		
+
 		resp := APIResponse{
 			OK:     true,
 			Result: json.RawMessage(`{"message_id": "msg123", "chat": {"id": "user123", "type": "private"}, "text": "` + expectedText + `", "date": "2024-01-01T00:00:00Z"}`),
@@ -133,24 +133,24 @@ func TestMessageService_Send_UnicodeSupport(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	messageConfig := types.MessageConfig{
 		ChatID: "user123",
 		Text:   "Xin chào! Đây là tin nhắn tiếng Việt",
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.Send(ctx, messageConfig)
-	
+
 	if err != nil {
 		t.Errorf("Send() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("Send() returned nil message")
 	}
@@ -159,7 +159,7 @@ func TestMessageService_Send_UnicodeSupport(t *testing.T) {
 func TestMessageService_Send_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name    string
 		config  types.MessageConfig
@@ -193,7 +193,7 @@ func TestMessageService_Send_ValidationError(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -207,17 +207,17 @@ func TestMessageService_Send_ValidationError(t *testing.T) {
 
 func TestMessageService_SendImage_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&payload)
-		
+
 		// Verify attachments
 		attachments, ok := payload["attachments"].([]interface{})
 		if !ok || len(attachments) == 0 {
 			t.Error("Expected attachments in payload")
 		}
-		
+
 		resp := APIResponse{
 			OK:     true,
 			Result: json.RawMessage(`{"message_id": "msg123", "chat": {"id": "user123", "type": "private"}, "date": "2024-01-01T00:00:00Z"}`),
@@ -226,26 +226,26 @@ func TestMessageService_SendImage_Success(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	imageConfig := types.ImageMessageConfig{
 		ChatID:   "user123",
 		ImageURL: "https://example.com/image.jpg",
 		Caption:  "Test image",
 		MimeType: "image/jpeg",
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendImage(ctx, imageConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendImage() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendImage() returned nil message")
 	}
@@ -254,7 +254,7 @@ func TestMessageService_SendImage_Success(t *testing.T) {
 func TestMessageService_SendImage_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name    string
 		config  types.ImageMessageConfig
@@ -284,7 +284,7 @@ func TestMessageService_SendImage_ValidationError(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -298,7 +298,7 @@ func TestMessageService_SendImage_ValidationError(t *testing.T) {
 
 func TestMessageService_SendFile_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -308,12 +308,12 @@ func TestMessageService_SendFile_Success(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	fileConfig := types.FileMessageConfig{
 		ChatID:   "user123",
 		FileURL:  "https://example.com/document.pdf",
@@ -321,14 +321,14 @@ func TestMessageService_SendFile_Success(t *testing.T) {
 		MimeType: "application/pdf",
 		Size:     1024,
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendFile(ctx, fileConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendFile() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendFile() returned nil message")
 	}
@@ -337,7 +337,7 @@ func TestMessageService_SendFile_Success(t *testing.T) {
 func TestMessageService_SendFile_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name    string
 		config  types.FileMessageConfig
@@ -378,7 +378,7 @@ func TestMessageService_SendFile_ValidationError(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -392,7 +392,7 @@ func TestMessageService_SendFile_ValidationError(t *testing.T) {
 
 func TestMessageService_SendVideo_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -402,19 +402,19 @@ func TestMessageService_SendVideo_Success(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	ctx := context.Background()
 	message, err := service.SendVideo(ctx, "user123", "https://example.com/video.mp4", "video/mp4")
-	
+
 	if err != nil {
 		t.Errorf("SendVideo() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendVideo() returned nil message")
 	}
@@ -423,7 +423,7 @@ func TestMessageService_SendVideo_Success(t *testing.T) {
 func TestMessageService_SendVideo_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name     string
 		chatID   string
@@ -453,7 +453,7 @@ func TestMessageService_SendVideo_ValidationError(t *testing.T) {
 			wantErr:  true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -467,7 +467,7 @@ func TestMessageService_SendVideo_ValidationError(t *testing.T) {
 
 func TestMessageService_SendAudio_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -477,19 +477,19 @@ func TestMessageService_SendAudio_Success(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	ctx := context.Background()
 	message, err := service.SendAudio(ctx, "user123", "https://example.com/audio.mp3", "audio/mpeg")
-	
+
 	if err != nil {
 		t.Errorf("SendAudio() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendAudio() returned nil message")
 	}
@@ -498,7 +498,7 @@ func TestMessageService_SendAudio_Success(t *testing.T) {
 func TestMessageService_SendAudio_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name     string
 		chatID   string
@@ -528,7 +528,7 @@ func TestMessageService_SendAudio_ValidationError(t *testing.T) {
 			wantErr:  true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -542,22 +542,22 @@ func TestMessageService_SendAudio_ValidationError(t *testing.T) {
 
 func TestMessageService_SendTemplate_Success(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify URL
 		expectedPath := "/bot" + botToken + "/sendTemplate"
 		if r.URL.Path != expectedPath {
 			t.Errorf("Request path = %v, want %v", r.URL.Path, expectedPath)
 		}
-		
+
 		var payload map[string]interface{}
 		json.NewDecoder(r.Body).Decode(&payload)
-		
+
 		// Verify structured message is present
 		if _, ok := payload["structured_message"]; !ok {
 			t.Error("Expected structured_message in payload")
 		}
-		
+
 		resp := APIResponse{
 			OK:     true,
 			Result: json.RawMessage(`{"message_id": "msg123", "chat": {"id": "user123", "type": "private"}, "date": "2024-01-01T00:00:00Z"}`),
@@ -566,12 +566,12 @@ func TestMessageService_SendTemplate_Success(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	structuredConfig := types.StructuredMessageConfig{
 		ChatID: "user123",
 		StructuredMessage: types.StructuredMessage{
@@ -598,14 +598,14 @@ func TestMessageService_SendTemplate_Success(t *testing.T) {
 			},
 		},
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendTemplate(ctx, structuredConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendTemplate() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendTemplate() returned nil message")
 	}
@@ -614,7 +614,7 @@ func TestMessageService_SendTemplate_Success(t *testing.T) {
 func TestMessageService_SendTemplate_ValidationError(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 	service, _ := setupTestMessageService(t, botToken)
-	
+
 	tests := []struct {
 		name    string
 		config  types.StructuredMessageConfig
@@ -655,7 +655,7 @@ func TestMessageService_SendTemplate_ValidationError(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	ctx := context.Background()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -669,7 +669,7 @@ func TestMessageService_SendTemplate_ValidationError(t *testing.T) {
 
 func TestMessageService_SendStructuredMessage_Alias(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -679,12 +679,12 @@ func TestMessageService_SendStructuredMessage_Alias(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	structuredConfig := types.StructuredMessageConfig{
 		ChatID: "user123",
 		StructuredMessage: types.StructuredMessage{
@@ -696,14 +696,14 @@ func TestMessageService_SendStructuredMessage_Alias(t *testing.T) {
 			},
 		},
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendStructuredMessage(ctx, structuredConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendStructuredMessage() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendStructuredMessage() returned nil message")
 	}
@@ -711,7 +711,7 @@ func TestMessageService_SendStructuredMessage_Alias(t *testing.T) {
 
 func TestMessageService_SendImageMessage_Alias(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -721,24 +721,24 @@ func TestMessageService_SendImageMessage_Alias(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	imageConfig := types.ImageMessageConfig{
 		ChatID:   "user123",
 		ImageURL: "https://example.com/image.jpg",
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendImageMessage(ctx, imageConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendImageMessage() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendImageMessage() returned nil message")
 	}
@@ -746,7 +746,7 @@ func TestMessageService_SendImageMessage_Alias(t *testing.T) {
 
 func TestMessageService_SendFileMessage_Alias(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := APIResponse{
 			OK:     true,
@@ -756,27 +756,123 @@ func TestMessageService_SendFileMessage_Alias(t *testing.T) {
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	fileConfig := types.FileMessageConfig{
 		ChatID:   "user123",
 		FileURL:  "https://example.com/file.pdf",
 		FileName: "file.pdf",
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.SendFileMessage(ctx, fileConfig)
-	
+
 	if err != nil {
 		t.Errorf("SendFileMessage() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("SendFileMessage() returned nil message")
+	}
+}
+
+func TestMessageService_SendChatAction_Success(t *testing.T) {
+	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := "/bot" + botToken + "/sendChatAction"
+		if r.URL.Path != expectedPath {
+			t.Errorf("Request path = %v, want %v", r.URL.Path, expectedPath)
+		}
+
+		var payload map[string]interface{}
+		json.NewDecoder(r.Body).Decode(&payload)
+
+		if payload["chat_id"] != "user123" {
+			t.Errorf("chat_id = %v, want user123", payload["chat_id"])
+		}
+		if payload["action"] != string(types.ChatActionTyping) {
+			t.Errorf("action = %v, want %v", payload["action"], types.ChatActionTyping)
+		}
+
+		resp := APIResponse{OK: true}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	service, config := setupTestMessageService(t, botToken)
+	config.BaseURL = server.URL
+	authService, _ := auth.NewAuthService(config)
+	service.authService = authService
+
+	ctx := context.Background()
+	err := service.SendChatAction(ctx, "user123", types.ChatActionTyping)
+
+	if err != nil {
+		t.Errorf("SendChatAction() error = %v", err)
+	}
+}
+
+func TestMessageService_SendChatAction_APIError(t *testing.T) {
+	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := APIResponse{OK: false, Description: "chat not found"}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	service, config := setupTestMessageService(t, botToken)
+	config.BaseURL = server.URL
+	authService, _ := auth.NewAuthService(config)
+	service.authService = authService
+
+	ctx := context.Background()
+	err := service.SendChatAction(ctx, "user123", types.ChatActionUploadPhoto)
+
+	if err == nil {
+		t.Fatal("SendChatAction() expected error but got none")
+	}
+}
+
+func TestMessageService_SendChatAction_ValidationError(t *testing.T) {
+	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+	service, _ := setupTestMessageService(t, botToken)
+
+	tests := []struct {
+		name    string
+		chatID  string
+		action  types.ChatActionType
+		wantErr bool
+	}{
+		{
+			name:    "missing chat ID",
+			chatID:  "",
+			action:  types.ChatActionTyping,
+			wantErr: true,
+		},
+		{
+			name:    "invalid action type",
+			chatID:  "user123",
+			action:  types.ChatActionType("invalid"),
+			wantErr: true,
+		},
+	}
+
+	ctx := context.Background()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := service.SendChatAction(ctx, tt.chatID, tt.action)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SendChatAction() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
@@ -802,7 +898,7 @@ func TestValidateRecipientID(t *testing.T) {
 			wantErr:     true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateRecipientID(tt.recipientID)

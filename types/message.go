@@ -140,6 +140,13 @@ type Attachment struct {
 	Size     int64          `json:"size,omitempty"`
 }
 
+type ChatActionType string
+
+const (
+	ChatActionTyping      ChatActionType = "typing"
+	ChatActionUploadPhoto ChatActionType = "upload_photo"
+)
+
 // AttachmentType represents the type of attachment
 type AttachmentType string
 
