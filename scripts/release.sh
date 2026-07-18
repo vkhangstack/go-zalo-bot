@@ -265,47 +265,45 @@ update_changelog() {
         fi
     done < "${changelog}"
     
-    # If we didn't find [Unreleased] section, add version after the header
+    # If we didn't find [Unreleased] section, insert the new version section
+    # right before the first existing "## " entry, so it lands after the
+    # title/description block instead of the middle of the intro paragraph.
     if [[ "${version_added}" == false ]]; then
         # Reset temp file
         rm -f "${temp_file}"
         temp_file=$(mktemp)
-        
-        local header_found=false
+
         while IFS= read -r line; do
-            echo "${line}" >> "${temp_file}"
-            
-            # Add after the main header and description
-            if [[ "${line}" =~ ^#[[:space:]]Changelog ]] && [[ "${header_found}" == false ]]; then
-                # Skip until we find a blank line or next section
-                while IFS= read -r next_line; do
-                    echo "${next_line}" >> "${temp_file}"
-                    if [[ -z "${next_line}" ]] || [[ "${next_line}" =~ ^\#\# ]]; then
-                        break
-                    fi
-                done
-                
-                # Add new version section
-                echo "" >> "${temp_file}"
+            if [[ "${line}" =~ ^\#\#[[:space:]] ]] && [[ "${version_added}" == false ]]; then
                 echo "## [${version_number}] - ${release_date}" >> "${temp_file}"
                 echo "" >> "${temp_file}"
-                
+
                 if [[ -n "${RELEASE_MESSAGE}" ]]; then
                     echo "### Release Notes" >> "${temp_file}"
                     echo "" >> "${temp_file}"
                     echo "${RELEASE_MESSAGE}" >> "${temp_file}"
                     echo "" >> "${temp_file}"
                 fi
-                
-                header_found=true
-                
-                # Continue with rest of file
-                while IFS= read -r remaining_line; do
-                    echo "${remaining_line}" >> "${temp_file}"
-                done
-                break
+
+                version_added=true
             fi
+
+            echo "${line}" >> "${temp_file}"
         done < "${changelog}"
+
+        # No "## " section found anywhere; append the new version at the end
+        if [[ "${version_added}" == false ]]; then
+            echo "" >> "${temp_file}"
+            echo "## [${version_number}] - ${release_date}" >> "${temp_file}"
+            echo "" >> "${temp_file}"
+
+            if [[ -n "${RELEASE_MESSAGE}" ]]; then
+                echo "### Release Notes" >> "${temp_file}"
+                echo "" >> "${temp_file}"
+                echo "${RELEASE_MESSAGE}" >> "${temp_file}"
+                echo "" >> "${temp_file}"
+            fi
+        fi
     fi
     
     # Replace original changelog with updated version
