@@ -34,6 +34,10 @@ func TestNewAuthService(t *testing.T) {
 	if authService.GetEnvironment() != config.Environment {
 		t.Errorf("Expected environment %s, got %s", config.Environment, authService.GetEnvironment())
 	}
+
+	if tm := authService.GetTokenManager(); tm == nil {
+		t.Error("GetTokenManager() returned nil")
+	}
 }
 
 func TestNewAuthService_InvalidConfig(t *testing.T) {

@@ -261,6 +261,27 @@ func TestErrorConstructors(t *testing.T) {
 	}
 }
 
+func TestErrorType_String(t *testing.T) {
+	tests := []struct {
+		et   ErrorType
+		want string
+	}{
+		{ErrorTypeAPI, "api_error"},
+		{ErrorTypeNetwork, "network_error"},
+		{ErrorTypeAuth, "auth_error"},
+		{ErrorTypeValidation, "validation_error"},
+		{ErrorTypeRateLimit, "rate_limit_error"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			if got := tt.et.String(); got != tt.want {
+				t.Errorf("ErrorType.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // testError is a helper type for testing non-ZaloBotError cases
 type testError struct{}
 

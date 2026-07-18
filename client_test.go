@@ -2,6 +2,7 @@ package zalobot
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -789,7 +790,180 @@ func TestBotAPI_CompletePollingFlow(t *testing.T) {
 		
 		// 4. Stop polling
 		_ = bot.StopPolling
-		
+
 		// All methods exist and are accessible
+	})
+}
+
+// TestBotAPI_HTTPWrapperMethods exercises the BotAPI methods that make real
+// HTTP calls against a mock server, since the tests above only check that the
+// methods exist without invoking them.
+func TestBotAPI_HTTPWrapperMethods(t *testing.T) {
+	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+
+	mux := http.NewServeMux()
+	prefix := "/bot" + botToken + "/"
+	mux.HandleFunc(prefix+"sendMessage", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true,"result":{"message_id":"msg1","date":1750316131602}}`))
+	})
+	mux.HandleFunc(prefix+"sendTemplate", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true,"result":{"message_id":"msg2","date":1750316131602}}`))
+	})
+	mux.HandleFunc(prefix+"getUserProfile", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true,"result":{"id":"user123","name":"Test User"}}`))
+	})
+	mux.HandleFunc(prefix+"setWebhook", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true}`))
+	})
+	mux.HandleFunc(prefix+"deleteWebhook", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true}`))
+	})
+	mux.HandleFunc(prefix+"getWebhookInfo", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true,"result":{"url":"https://example.com/webhook","has_custom_certificate":false,"pending_update_count":0}}`))
+	})
+	mux.HandleFunc(prefix+"getUpdates", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ok":true,"result":[]}`))
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	bot, err := New(botToken, types.WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	defer bot.Close()
+
+	buttonMessage := types.StructuredMessage{
+		Type: types.StructuredMessageTypeButton,
+		Elements: []types.MessageElement{
+			{
+				Title:   "Choose an option",
+				Buttons: []types.Button{{Type: types.ButtonTypePostback, Title: "Option 1", Payload: "OPT1"}},
+			},
+		},
+	}
+
+	t.Run("SendMessage", func(t *testing.T) {
+		msg, err := bot.SendMessage(types.MessageConfig{ChatID: "user123", Text: "Hello"})
+		if err != nil {
+			t.Fatalf("SendMessage() error = %v", err)
+		}
+		if msg.MessageID != "msg1" {
+			t.Errorf("MessageID = %v, want msg1", msg.MessageID)
+		}
+	})
+
+	t.Run("SendImage", func(t *testing.T) {
+		if _, err := bot.SendImage(types.ImageMessageConfig{ChatID: "user123", ImageURL: "https://example.com/i.jpg"}); err != nil {
+			t.Errorf("SendImage() error = %v", err)
+		}
+	})
+
+	t.Run("SendFile", func(t *testing.T) {
+		if _, err := bot.SendFile(types.FileMessageConfig{ChatID: "user123", FileURL: "https://example.com/f.pdf", FileName: "f.pdf"}); err != nil {
+			t.Errorf("SendFile() error = %v", err)
+		}
+	})
+
+	t.Run("SendVideo", func(t *testing.T) {
+		if _, err := bot.SendVideo("user123", "https://example.com/v.mp4", "video/mp4"); err != nil {
+			t.Errorf("SendVideo() error = %v", err)
+		}
+	})
+
+	t.Run("SendAudio", func(t *testing.T) {
+		if _, err := bot.SendAudio("user123", "https://example.com/a.mp3", "audio/mpeg"); err != nil {
+			t.Errorf("SendAudio() error = %v", err)
+		}
+	})
+
+	t.Run("SendTemplate", func(t *testing.T) {
+		if _, err := bot.SendTemplate(types.StructuredMessageConfig{ChatID: "user123", StructuredMessage: buttonMessage}); err != nil {
+			t.Errorf("SendTemplate() error = %v", err)
+		}
+	})
+
+	t.Run("SendStructuredMessage", func(t *testing.T) {
+		if _, err := bot.SendStructuredMessage(types.StructuredMessageConfig{ChatID: "user123", StructuredMessage: buttonMessage}); err != nil {
+			t.Errorf("SendStructuredMessage() error = %v", err)
+		}
+	})
+
+	t.Run("GetUserProfile", func(t *testing.T) {
+		profile, err := bot.GetUserProfile("user123")
+		if err != nil {
+			t.Fatalf("GetUserProfile() error = %v", err)
+		}
+		if profile.ID != "user123" {
+			t.Errorf("ID = %v, want user123", profile.ID)
+		}
+	})
+
+	t.Run("SetWebhook", func(t *testing.T) {
+		if err := bot.SetWebhook(types.WebhookConfig{URL: "https://example.com/webhook", SecretToken: "secret"}); err != nil {
+			t.Errorf("SetWebhook() error = %v", err)
+		}
+	})
+
+	t.Run("DeleteWebhook", func(t *testing.T) {
+		if err := bot.DeleteWebhook(); err != nil {
+			t.Errorf("DeleteWebhook() error = %v", err)
+		}
+	})
+
+	t.Run("GetWebhookInfo", func(t *testing.T) {
+		info, err := bot.GetWebhookInfo()
+		if err != nil {
+			t.Fatalf("GetWebhookInfo() error = %v", err)
+		}
+		if info.URL != "https://example.com/webhook" {
+			t.Errorf("URL = %v, want https://example.com/webhook", info.URL)
+		}
+	})
+
+	t.Run("GetUpdates", func(t *testing.T) {
+		if _, err := bot.GetUpdates(types.UpdateConfig{Limit: 10}); err != nil {
+			t.Errorf("GetUpdates() error = %v", err)
+		}
+	})
+
+	t.Run("GetFieldSecretToken", func(t *testing.T) {
+		if got := bot.GetFieldSecretToken(); got != "x-bot-api-secret-token" {
+			t.Errorf("GetFieldSecretToken() = %v, want x-bot-api-secret-token", got)
+		}
+	})
+
+	t.Run("GetAuthService", func(t *testing.T) {
+		if bot.GetAuthService() == nil {
+			t.Error("GetAuthService() returned nil")
+		}
+	})
+
+	t.Run("ProcessWebhook, ValidateWebhookSecretToken and ParseWebhookUpdate", func(t *testing.T) {
+		secretToken := "webhook-secret"
+		bot.SetWebhookSecretToken(secretToken)
+
+		if err := bot.ValidateWebhookSecretToken(secretToken); err != nil {
+			t.Errorf("ValidateWebhookSecretToken() error = %v", err)
+		}
+
+		payload := []byte(`{"ok":true,"result":{"event_name":"message.text.received","message":{"message_id":"m1","date":1750316131602,"text":"hi","from":{"id":"u1"},"chat":{"id":"c1","chat_type":"PRIVATE"}}}}`)
+
+		update, err := bot.ProcessWebhook(payload, secretToken)
+		if err != nil {
+			t.Fatalf("ProcessWebhook() error = %v", err)
+		}
+		if update.Message == nil || update.Message.Text != "hi" {
+			t.Errorf("ProcessWebhook() update = %+v", update)
+		}
+
+		update2, err := bot.ParseWebhookUpdate(payload)
+		if err != nil {
+			t.Fatalf("ParseWebhookUpdate() error = %v", err)
+		}
+		if update2.EventName != "message.text.received" {
+			t.Errorf("EventName = %v, want message.text.received", update2.EventName)
+		}
 	})
 }

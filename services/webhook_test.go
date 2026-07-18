@@ -20,6 +20,19 @@ const realWebhookSample = `{
 	}
 }`
 
+func TestNewWebhookService(t *testing.T) {
+	service := NewWebhookService(nil, "initial-token")
+
+	if got := service.GetSecretToken(); got != "initial-token" {
+		t.Errorf("GetSecretToken() = %v, want initial-token", got)
+	}
+
+	service.SetSecretToken("updated-token")
+	if got := service.GetSecretToken(); got != "updated-token" {
+		t.Errorf("GetSecretToken() after SetSecretToken() = %v, want updated-token", got)
+	}
+}
+
 func TestWebhookService_ValidateSecretToken(t *testing.T) {
 	secretToken := "test-secret-token"
 	service := &WebhookService{

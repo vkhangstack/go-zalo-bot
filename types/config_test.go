@@ -1,7 +1,9 @@
 package types
 
 import (
+	"net/http"
 	"testing"
+	"time"
 )
 
 func TestEnvironment_IsValid(t *testing.T) {
@@ -506,5 +508,109 @@ func TestBotOptions(t *testing.T) {
 	WithRetries(5)(config)
 	if config.Retries != 5 {
 		t.Errorf("WithRetries() failed, got %v", config.Retries)
+	}
+
+	// Test WithTimeout
+	WithTimeout(10 * time.Second)(config)
+	if config.Timeout != 10*time.Second {
+		t.Errorf("WithTimeout() failed, got %v", config.Timeout)
+	}
+
+	// Test WithHTTPClient
+	customClient := &http.Client{Timeout: 5 * time.Second}
+	WithHTTPClient(customClient)(config)
+	if config.HTTPClient != customClient {
+		t.Error("WithHTTPClient() failed, HTTPClient not set")
+	}
+
+	// Test WithRetryConfig
+	retryConfig := &RetryConfig{MaxRetries: 7}
+	WithRetryConfig(retryConfig)(config)
+	if config.RetryConfig != retryConfig {
+		t.Error("WithRetryConfig() failed, RetryConfig not set")
+	}
+}
+
+func TestEnvironment_String(t *testing.T) {
+	if got := Development.String(); got != "development" {
+		t.Errorf("Environment.String() = %v, want development", got)
+	}
+	if got := Production.String(); got != "production" {
+		t.Errorf("Environment.String() = %v, want production", got)
+	}
+}
+
+func TestMessageType_String(t *testing.T) {
+	if got := MessageTypeText.String(); got != "text" {
+		t.Errorf("MessageType.String() = %v, want text", got)
+	}
+}
+
+func TestStructuredMessageConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  StructuredMessageConfig
+		wantErr bool
+	}{
+		{
+			name:    "empty ChatID",
+			config:  StructuredMessageConfig{ChatID: ""},
+			wantErr: true,
+		},
+		{
+			name: "invalid structured message",
+			config: StructuredMessageConfig{
+				ChatID:            "user123",
+				StructuredMessage: StructuredMessage{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid structured message",
+			config: StructuredMessageConfig{
+				ChatID: "user123",
+				StructuredMessage: StructuredMessage{
+					Type: StructuredMessageTypeButton,
+					Elements: []MessageElement{
+						{
+							Title: "Choose an option",
+							Buttons: []Button{
+								{Type: ButtonTypePostback, Title: "Option 1", Payload: "OPT1"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("StructuredMessageConfig.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestChatActionType_IsValid(t *testing.T) {
+	tests := []struct {
+		name   string
+		action ChatActionType
+		want   bool
+	}{
+		{"typing is valid", ChatActionTyping, true},
+		{"upload_photo is valid", ChatActionUploadPhoto, true},
+		{"unknown is invalid", ChatActionType("unknown"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.action.IsValid(); got != tt.want {
+				t.Errorf("ChatActionType.IsValid() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

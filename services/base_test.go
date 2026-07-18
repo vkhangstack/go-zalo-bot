@@ -425,3 +425,24 @@ func TestBaseService_DoRequest_WithQueryParams(t *testing.T) {
 		t.Error("DoRequest() failed")
 	}
 }
+
+func TestBaseService_Getters(t *testing.T) {
+	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+	service, config := setupTestService(t, botToken)
+
+	if service.GetAuthService() == nil {
+		t.Error("GetAuthService() returned nil")
+	}
+
+	if service.GetHTTPClient() != config.HTTPClient {
+		t.Error("GetHTTPClient() did not return the configured HTTP client")
+	}
+
+	if service.GetConfig() != config {
+		t.Error("GetConfig() did not return the configured config")
+	}
+
+	if got := service.GetFieldSecretToken(); got != "x-bot-api-secret-token" {
+		t.Errorf("GetFieldSecretToken() = %v, want x-bot-api-secret-token", got)
+	}
+}

@@ -72,7 +72,10 @@ run_tests() {
     
     # Build test command
     local test_cmd="go test"
-    local test_args="./..."
+    # Exclude examples/... : plain main packages with no tests that would
+    # otherwise dilute the coverage percentage with 0%-covered statements.
+    local test_args
+    test_args=$(go list ./... | grep -v /examples | tr '\n' ' ')
     
     # Add verbose flag if requested
     if [[ "$VERBOSE" == true ]]; then

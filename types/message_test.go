@@ -136,6 +136,76 @@ func TestMessage_JSON(t *testing.T) {
 	}
 }
 
+func TestMessage_UnmarshalJSON_WebhookPhotoAndSticker(t *testing.T) {
+	// Real webhook payloads send photo/sticker as plain strings rather than
+	// structured objects (https://bot.zapps.me/docs/webhook/).
+	data := []byte(`{
+		"message_id": "msg1",
+		"date": 1750316131602,
+		"photo": "https://example.com/photo.jpg",
+		"sticker": "sticker-id-1",
+		"url": "https://example.com/sticker.webp"
+	}`)
+
+	var message Message
+	if err := json.Unmarshal(data, &message); err != nil {
+		t.Fatalf("Message.UnmarshalJSON() error = %v", err)
+	}
+
+	if message.Photo == nil || message.Photo.URL != "https://example.com/photo.jpg" {
+		t.Errorf("Message.Photo = %+v, want URL https://example.com/photo.jpg", message.Photo)
+	}
+
+	if message.Sticker == nil || message.Sticker.FileID != "sticker-id-1" {
+		t.Errorf("Message.Sticker = %+v, want FileID sticker-id-1", message.Sticker)
+	}
+
+	if message.Sticker.URL != "https://example.com/sticker.webp" {
+		t.Errorf("Message.Sticker.URL = %v, want https://example.com/sticker.webp", message.Sticker.URL)
+	}
+}
+
+func TestMessage_UnmarshalJSON_StructuredPhotoAndSticker(t *testing.T) {
+	// The SDK's own encoding sends photo/sticker as structured objects.
+	data := []byte(`{
+		"message_id": "msg1",
+		"date": "2025-01-01T00:00:00Z",
+		"photo": {"file_id": "photo-file-1", "width": 100, "height": 200},
+		"sticker": {"file_id": "sticker-file-1", "is_animated": true}
+	}`)
+
+	var message Message
+	if err := json.Unmarshal(data, &message); err != nil {
+		t.Fatalf("Message.UnmarshalJSON() error = %v", err)
+	}
+
+	if message.Photo == nil || message.Photo.FileID != "photo-file-1" || message.Photo.Width != 100 {
+		t.Errorf("Message.Photo = %+v, want FileID photo-file-1, Width 100", message.Photo)
+	}
+
+	if message.Sticker == nil || message.Sticker.FileID != "sticker-file-1" || !message.Sticker.IsAnimated {
+		t.Errorf("Message.Sticker = %+v, want FileID sticker-file-1, IsAnimated true", message.Sticker)
+	}
+}
+
+func TestMessage_UnmarshalJSON_InvalidPhoto(t *testing.T) {
+	data := []byte(`{"message_id": "msg1", "date": "2025-01-01T00:00:00Z", "photo": 123}`)
+
+	var message Message
+	if err := json.Unmarshal(data, &message); err == nil {
+		t.Error("Message.UnmarshalJSON() expected error for invalid photo, got nil")
+	}
+}
+
+func TestMessage_UnmarshalJSON_InvalidSticker(t *testing.T) {
+	data := []byte(`{"message_id": "msg1", "date": "2025-01-01T00:00:00Z", "sticker": 123}`)
+
+	var message Message
+	if err := json.Unmarshal(data, &message); err == nil {
+		t.Error("Message.UnmarshalJSON() expected error for invalid sticker, got nil")
+	}
+}
+
 func TestStructuredMessageType_IsValid(t *testing.T) {
 	tests := []struct {
 		name string
