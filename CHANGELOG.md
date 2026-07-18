@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.5] - 2026-07-19
+
+### Features
+- Webhook authentication now uses a secret token compared against the
+  `X-Bot-Api-Secret-Token` header (`WebhookService.ValidateSecretToken`,
+  `BotAPI.ValidateWebhookSecretToken`, `GetFieldSecretToken`), replacing the
+  previous HMAC signature scheme
+- Webhook payloads are parsed directly into `Message`/`Update`, matching the
+  real Zalo webhook envelope (`{"ok":true,"result":{"event_name":...,"message":{...}}}`)
+- `MessageService.SendChatAction` sends chat actions (e.g. "typing") to
+  indicate activity to the recipient
+- New advanced examples: rich media messages, user profile directory/caching,
+  and custom error handling with retry
+
+
 ## [0.0.1] - 2025-11-17
 
 ### Added

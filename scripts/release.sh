@@ -201,6 +201,65 @@ run_validation() {
     echo ""
 }
 
+# Update version.yml with new version information
+update_version_yml() {
+    log_info "Updating version.yml..."
+
+    local version_file="${PROJECT_ROOT}/version.yml"
+
+    if [[ ! -f "${version_file}" ]]; then
+        log_warning "version.yml not found at ${version_file}, skipping"
+        return 0
+    fi
+
+    # Extract version number without 'v' prefix, and split into
+    # major.minor.patch and an optional prerelease part.
+    local version_number="${VERSION#v}"
+    local core="${version_number%%+*}"
+    local prerelease=""
+    if [[ "${core}" == *-* ]]; then
+        prerelease="${core#*-}"
+        core="${core%%-*}"
+    fi
+
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "${core}"
+
+    local release_date
+    release_date=$(date +%Y-%m-%d)
+
+    local branch
+    branch=$(get_current_branch)
+
+    local sdk_name
+    sdk_name=$(awk -F'"' '/^[[:space:]]*name:/{print $2; exit}' "${version_file}")
+
+    if [[ "${DRY_RUN}" == true ]]; then
+        log_info "[DRY RUN] Would update version.yml:"
+        log_info "  - version: ${major}.${minor}.${patch}${prerelease:+-${prerelease}}"
+        log_info "  - full_version / user_agent: ${version_number}"
+        log_info "  - release date: ${release_date}"
+        log_info "  - release branch: ${branch}"
+        return 0
+    fi
+
+    # Replace only the value token after each key, preserving any inline
+    # comment (e.g. "# major.minor.patch[-prerelease]") already on the line.
+    sed -E -i.bak \
+        -e "s/^([[:space:]]*major:)[[:space:]]*[0-9]+/\1 ${major}/" \
+        -e "s/^([[:space:]]*minor:)[[:space:]]*[0-9]+/\1 ${minor}/" \
+        -e "s/^([[:space:]]*patch:)[[:space:]]*[0-9]+/\1 ${patch}/" \
+        -e "s/^([[:space:]]*prerelease:)[[:space:]]*\"[^\"]*\"/\1 \"${prerelease}\"/" \
+        -e "s/^([[:space:]]*full_version:)[[:space:]]*\"[^\"]*\"/\1 \"${version_number}\"/" \
+        -e "s/^([[:space:]]*user_agent:)[[:space:]]*\"[^\"]*\"/\1 \"${sdk_name}\/${version_number}\"/" \
+        -e "s/^([[:space:]]*date:)[[:space:]]*\"[^\"]*\"/\1 \"${release_date}\"/" \
+        -e "s/^([[:space:]]*branch:)[[:space:]]*\"[^\"]*\"/\1 \"${branch}\"/" \
+        "${version_file}"
+    rm -f "${version_file}.bak"
+
+    log_success "version.yml updated to ${version_number}"
+}
+
 # Update CHANGELOG.md with new version
 update_changelog() {
     log_info "Updating CHANGELOG.md..."
@@ -428,17 +487,18 @@ main() {
     log_info "Creating release..."
     echo ""
     
+    update_version_yml
     update_changelog
-    
-    # Commit changelog changes if not dry run
+
+    # Commit changelog and version.yml changes if not dry run
     if [[ "${DRY_RUN}" == false ]]; then
-        log_info "Committing CHANGELOG.md changes..."
-        git add "${PROJECT_ROOT}/CHANGELOG.md"
-        git commit -m "chore: update CHANGELOG for ${VERSION}"
-        log_success "CHANGELOG.md committed"
+        log_info "Committing CHANGELOG.md and version.yml changes..."
+        git add "${PROJECT_ROOT}/CHANGELOG.md" "${PROJECT_ROOT}/version.yml"
+        git commit -m "chore: update CHANGELOG and version.yml for ${VERSION}"
+        log_success "CHANGELOG.md and version.yml committed"
         echo ""
     else
-        log_info "[DRY RUN] Would commit CHANGELOG.md changes"
+        log_info "[DRY RUN] Would commit CHANGELOG.md and version.yml changes"
         echo ""
     fi
     

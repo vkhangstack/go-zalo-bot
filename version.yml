@@ -5,16 +5,16 @@
 version:
   major: 0
   minor: 0
-  patch: 4
-  prerelease: ""  # e.g., "beta", "alpha", "rc.1" - empty for stable releases
+  patch: 5
+  prerelease: "" # e.g., "beta", "alpha", "rc.1" - empty for stable releases
 
 # SDK metadata
 sdk:
   name: "Go-Zalo-Bot-SDK"
-  full_version: "0.0.4"  # major.minor.patch[-prerelease]
-  user_agent: "Go-Zalo-Bot-SDK/0.0.4"
+  full_version: "0.0.5" # major.minor.patch[-prerelease]
+  user_agent: "Go-Zalo-Bot-SDK/0.0.5"
 
 # Release information
 release:
-  date: "2025-11-18"
+  date: "2026-07-19"
   branch: "master"
