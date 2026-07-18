@@ -201,6 +201,9 @@ go-zalo-bot/
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-07-19
+
+
 ### Planned Features
 - Message editing and deletion
 - Group chat support
