@@ -4,7 +4,7 @@ This directory contains advanced usage examples for the Zalo Bot SDK, demonstrat
 
 ## Examples
 
-### 1. Rich Media Messages (`rich_media.go`)
+### 1. Rich Media Messages (`rich_media/main.go`)
 
 Demonstrates how to send various types of rich media content:
 
@@ -24,7 +24,7 @@ Demonstrates how to send various types of rich media content:
 - Interactive elements (buttons, quick replies)
 - Postback handling for button clicks
 
-### 2. User Profile Handling (`user_profile.go`)
+### 2. User Profile Handling (`user_profile/main.go`)
 
 Demonstrates how to work with user profile information:
 
@@ -40,7 +40,7 @@ Demonstrates how to work with user profile information:
 - Batch user processing
 - Personalization strategies
 
-### 3. Error Handling and Retry Mechanisms (`error_handling.go`)
+### 3. Error Handling and Retry Mechanisms (`error_handling/main.go`)
 
 Demonstrates robust error handling and retry strategies:
 
@@ -71,7 +71,7 @@ export ZALO_BOT_TOKEN="your-bot-token-here"
 ### Rich Media Example
 
 ```bash
-go run rich_media.go
+go run ./rich_media
 ```
 
 This will demonstrate sending various types of rich media messages. Make sure to replace `example_user_id` with an actual user ID.
@@ -79,7 +79,7 @@ This will demonstrate sending various types of rich media messages. Make sure to
 ### User Profile Example
 
 ```bash
-go run user_profile.go
+go run ./user_profile
 ```
 
 This will show how to retrieve and work with user profiles. Replace `example_user_id` with an actual user ID.
@@ -87,7 +87,7 @@ This will show how to retrieve and work with user profiles. Replace `example_use
 ### Error Handling Example
 
 ```bash
-go run error_handling.go
+go run ./error_handling
 ```
 
 This will demonstrate various error handling patterns and retry mechanisms.

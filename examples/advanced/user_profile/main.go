@@ -49,7 +49,7 @@ func getUserProfile(bot *zalobot.BotAPI, userID string) {
 	fmt.Printf("ID: %s\n", profile.ID)
 	fmt.Printf("Name: %s\n", profile.Name)
 	fmt.Printf("Avatar: %s\n", profile.Avatar)
-	fmt.Println("===================\n")
+	fmt.Println("===================")
 }
 
 // sendPersonalizedMessage sends a personalized message using user profile data
@@ -99,7 +99,7 @@ func handleMultipleUsers(bot *zalobot.BotAPI, userIDs []string) {
 		})
 	}
 
-	fmt.Println("=================================\n")
+	fmt.Println("=================================")
 }
 
 // Example: Building a user directory
@@ -200,5 +200,5 @@ func demonstrateProfileCache(bot *zalobot.BotAPI) {
 	}
 	fmt.Printf("Second call: %s\n", profile2.Name)
 
-	fmt.Println("==========================\n")
+	fmt.Println("==========================")
 }

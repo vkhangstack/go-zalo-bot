@@ -92,7 +92,7 @@ func demonstrateBasicErrorHandling(bot *zalobot.BotAPI, chatID string) {
 	}
 
 	log.Println("Message sent successfully")
-	fmt.Println("============================\n")
+	fmt.Println("============================")
 }
 
 // demonstrateRetryMechanism shows how the SDK handles retries automatically
@@ -112,7 +112,7 @@ func demonstrateRetryMechanism(bot *zalobot.BotAPI, chatID string) {
 	}
 
 	log.Println("Message sent (with automatic retries if needed)")
-	fmt.Println("=======================\n")
+	fmt.Println("=======================")
 }
 
 // demonstrateTimeoutHandling shows how to handle timeout scenarios
@@ -140,7 +140,7 @@ func demonstrateTimeoutHandling(bot *zalobot.BotAPI, chatID string) {
 	}
 
 	log.Println("Message sent within timeout")
-	fmt.Println("========================\n")
+	fmt.Println("========================")
 }
 
 // demonstrateRateLimitHandling shows how to handle rate limiting
@@ -174,7 +174,7 @@ func demonstrateRateLimitHandling(bot *zalobot.BotAPI, chatID string) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	fmt.Println("===========================\n")
+	fmt.Println("===========================")
 }
 
 // demonstrateValidationErrors shows how to handle validation errors
@@ -206,7 +206,7 @@ func demonstrateValidationErrors(bot *zalobot.BotAPI) {
 		log.Printf("Image validation failed: %v", err)
 	}
 
-	fmt.Println("=========================\n")
+	fmt.Println("=========================")
 }
 
 // demonstrateLogging shows how to use debug logging
@@ -229,7 +229,7 @@ func demonstrateLogging(bot *zalobot.BotAPI, chatID string) {
 	}
 
 	log.Println("Check the logs above for detailed debug information")
-	fmt.Println("====================\n")
+	fmt.Println("====================")
 }
 
 // Example: Custom error handler wrapper
