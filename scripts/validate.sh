@@ -112,7 +112,7 @@ validate_examples() {
         
         # Try to compile the example
         local relative_example_path
-        relative_example_path=$(realpath --relative-to="${PROJECT_ROOT}" "${example_dir}")
+        relative_example_path="${example_dir#"${PROJECT_ROOT}"/}"
         
         if go build -o /dev/null "./${relative_example_path}" 2>/dev/null; then
             if [ "${VERBOSE}" = true ]; then
@@ -281,22 +281,31 @@ validate_godoc_coverage() {
             local symbol_name
             symbol_name=$(echo "${symbol_def}" | awk '{print $2}' | cut -d'(' -f1)
             
-            # Check if there's a comment on the line before
+            # Walk upward through the contiguous "//" comment block (if any)
+            # immediately preceding the declaration, so multi-line doc comments
+            # are matched against their first line rather than their last.
             local prev_line=$((line_num - 1))
-            if [ "${prev_line}" -gt 0 ]; then
-                local comment
-                comment=$(sed -n "${prev_line}p" "${go_file}")
+            local top_comment=""
+            while [ "${prev_line}" -gt 0 ]; do
+                local line_content
+                line_content=$(sed -n "${prev_line}p" "${go_file}")
+                if [[ "${line_content}" =~ ^// ]]; then
+                    top_comment="${line_content}"
+                    prev_line=$((prev_line - 1))
+                else
+                    break
+                fi
+            done
+
+            # Check if comment exists and starts with // and mentions the symbol name
+            if [[ ! "${top_comment}" =~ ^//[[:space:]]*${symbol_name} ]]; then
+                local relative_path
+                relative_path="${go_file#"${PROJECT_ROOT}"/}"
+                add_issue "warning" "Missing godoc comment for exported symbol '${symbol_name}' in ${relative_path}:${line_num}"
+                missing_docs=$((missing_docs + 1))
                 
-                # Check if comment exists and starts with // and mentions the symbol name
-                if [[ ! "${comment}" =~ ^//[[:space:]]*${symbol_name} ]]; then
-                    local relative_path
-                    relative_path=$(realpath --relative-to="${PROJECT_ROOT}" "${go_file}")
-                    add_issue "warning" "Missing godoc comment for exported symbol '${symbol_name}' in ${relative_path}:${line_num}"
-                    missing_docs=$((missing_docs + 1))
-                    
-                    if [ "${VERBOSE}" = true ]; then
-                        log_warning "  ${symbol_def}"
-                    fi
+                if [ "${VERBOSE}" = true ]; then
+                    log_warning "  ${symbol_def}"
                 fi
             fi
         done <<< "${exported_symbols}"
