@@ -1,9 +1,6 @@
 package utils
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,14 +13,6 @@ import (
 )
 
 var (
-	// ErrInvalidSignature is returned when webhook signature validation fails
-	ErrInvalidSignature = errors.New("invalid webhook signature")
-	// ErrEmptySignature is returned when signature is empty
-	ErrEmptySignature = errors.New("empty webhook signature")
-	// ErrEmptySecret is returned when secret token is empty
-	ErrEmptySecret = errors.New("empty secret token")
-	// ErrEmptyPayload is returned when payload is empty
-	ErrEmptyPayload = errors.New("empty webhook payload")
 	// ErrInvalidUserID is returned when user ID is invalid
 	ErrInvalidUserID = errors.New("invalid user ID")
 	// ErrInvalidRecipientID is returned when recipient ID is invalid
@@ -97,50 +86,6 @@ var (
 		".rar":  true,
 	}
 )
-
-// VerifyWebhookSignature verifies webhook signature using HMAC-SHA256
-// This function provides secure validation using secret tokens
-// Returns true if signature is valid, false otherwise
-func VerifyWebhookSignature(payload []byte, signature, secret string) bool {
-	// Validate inputs
-	if len(payload) == 0 || strings.TrimSpace(signature) == "" || strings.TrimSpace(secret) == "" {
-		return false
-	}
-
-	// Compute HMAC-SHA256
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(payload)
-	expected := hex.EncodeToString(mac.Sum(nil))
-
-	// Use constant-time comparison to prevent timing attacks
-	return hmac.Equal([]byte(signature), []byte(expected))
-}
-
-// ValidateWebhookSignature validates webhook signature and returns detailed error
-// This function provides enhanced validation with specific error messages
-func ValidateWebhookSignature(payload []byte, signature, secret string) error {
-	// Check for empty payload
-	if len(payload) == 0 {
-		return ErrEmptyPayload
-	}
-
-	// Check for empty signature
-	if strings.TrimSpace(signature) == "" {
-		return ErrEmptySignature
-	}
-
-	// Check for empty secret
-	if strings.TrimSpace(secret) == "" {
-		return ErrEmptySecret
-	}
-
-	// Verify signature
-	if !VerifyWebhookSignature(payload, signature, secret) {
-		return ErrInvalidSignature
-	}
-
-	return nil
-}
 
 // RejectInvalidWebhookRequest creates an error for rejecting invalid webhook requests
 // This provides a standardized way to reject requests with invalid signatures

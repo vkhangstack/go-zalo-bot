@@ -82,11 +82,17 @@ func (s *MessageService) Send(ctx context.Context, config types.MessageConfig) (
 		return nil, err
 	}
 
-	// Parse response
+	// sendMessage only returns {"message_id","date"} on success (see
+	// https://bot.zapps.me/docs/apis/sendMessage/); fill in the rest of the
+	// Message from what was actually sent rather than leaving it empty.
 	var message types.Message
 	if err := parseResult(resp.Result, &message); err != nil {
 		return nil, types.NewAPIError(0, "Failed to parse message response", err.Error())
 	}
+
+	message.Chat = &types.Chat{ID: config.ChatID}
+	message.Text = config.Text
+	message.Attachments = config.Attachments
 
 	return &message, nil
 }
@@ -263,11 +269,14 @@ func (s *MessageService) SendTemplate(ctx context.Context, config types.Structur
 		return nil, err
 	}
 
-	// Parse response
+	// sendTemplate only returns {"message_id","date"} on success; fill in the
+	// rest of the Message from what was actually sent rather than leaving it empty.
 	var message types.Message
 	if err := parseResult(resp.Result, &message); err != nil {
 		return nil, types.NewAPIError(0, "Failed to parse message response", err.Error())
 	}
+
+	message.Chat = &types.Chat{ID: config.ChatID}
 
 	return &message, nil
 }

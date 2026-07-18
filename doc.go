@@ -12,7 +12,7 @@
 //   - Message Handling - Send and receive text messages with Unicode support
 //   - Rich Media - Support for images, files, videos, audio, and structured messages
 //   - Interactive Elements - Buttons, quick replies, and postback events
-//   - Webhooks - Real-time event processing with signature validation
+//   - Webhooks - Real-time event processing with secret token validation
 //   - Polling - Alternative update mechanism with long polling support
 //   - User Profiles - Retrieve and manage user profile information
 //   - Retry Mechanisms - Automatic retry with exponential backoff
@@ -93,7 +93,8 @@
 //
 // Set up webhooks for real-time event processing:
 //
-//	// Set webhook secret token for signature validation
+//	// Set webhook secret token, compared against the X-Bot-Api-Secret-Token
+//	// header Zalo sends with every webhook request
 //	bot.SetWebhookSecretToken("your-webhook-secret")
 //
 //	// Configure webhook
@@ -106,11 +107,11 @@
 //
 //	func webhookHandler(w http.ResponseWriter, r *http.Request) {
 //	    body, _ := io.ReadAll(r.Body)
-//	    signature := r.Header.Get("X-Zalo-Signature")
+//	    secretToken := r.Header.Get(bot.GetFieldSecretToken())
 //
-//	    update, err := bot.ProcessWebhook(body, signature)
+//	    update, err := bot.ProcessWebhook(body, secretToken)
 //	    if err != nil {
-//	        http.Error(w, "Invalid signature", http.StatusUnauthorized)
+//	        http.Error(w, "Invalid secret token", http.StatusUnauthorized)
 //	        return
 //	    }
 //

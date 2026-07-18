@@ -13,9 +13,122 @@ type Message struct {
 	Chat        *Chat        `json:"chat"`
 	Date        time.Time    `json:"date"`
 	Text        string       `json:"text,omitempty"`
+	Caption     string       `json:"caption,omitempty"`
 	Photo       *Photo       `json:"photo,omitempty"`
 	Sticker     *Sticker     `json:"sticker,omitempty"`
+	VoiceURL    string       `json:"voice_url,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
+}
+
+// rawMessage mirrors Message but leaves fields that need custom decoding as
+// raw JSON, so a single Message type can decode both the SDK's own encoding
+// (photo/sticker as objects, date as RFC3339) and the real incoming webhook
+// wire format (photo/sticker as plain strings, date as a Unix millisecond
+// timestamp, a top-level sticker "url"). See https://bot.zapps.me/docs/webhook/
+type rawMessage struct {
+	MessageID   string          `json:"message_id"`
+	From        *User           `json:"from"`
+	Chat        *Chat           `json:"chat"`
+	Date        json.RawMessage `json:"date"`
+	Text        string          `json:"text,omitempty"`
+	Caption     string          `json:"caption,omitempty"`
+	Photo       json.RawMessage `json:"photo,omitempty"`
+	Sticker     json.RawMessage `json:"sticker,omitempty"`
+	StickerURL  string          `json:"url,omitempty"`
+	VoiceURL    string          `json:"voice_url,omitempty"`
+	Attachments []Attachment    `json:"attachments,omitempty"`
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface
+func (m *Message) UnmarshalJSON(data []byte) error {
+	var raw rawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	m.MessageID = raw.MessageID
+	m.From = raw.From
+	m.Chat = raw.Chat
+	m.Text = raw.Text
+	m.Caption = raw.Caption
+	m.VoiceURL = raw.VoiceURL
+	m.Attachments = raw.Attachments
+
+	if len(raw.Date) > 0 {
+		date, err := parseMessageDate(raw.Date)
+		if err != nil {
+			return fmt.Errorf("invalid message date: %w", err)
+		}
+		m.Date = date
+	}
+
+	if len(raw.Photo) > 0 {
+		photo, err := parsePhoto(raw.Photo)
+		if err != nil {
+			return fmt.Errorf("invalid photo: %w", err)
+		}
+		m.Photo = photo
+	}
+
+	if len(raw.Sticker) > 0 {
+		sticker, err := parseSticker(raw.Sticker)
+		if err != nil {
+			return fmt.Errorf("invalid sticker: %w", err)
+		}
+		if raw.StickerURL != "" {
+			sticker.URL = raw.StickerURL
+		}
+		m.Sticker = sticker
+	}
+
+	return nil
+}
+
+// parseMessageDate decodes a message date, accepting either the Unix
+// millisecond timestamp sent by real webhook payloads or the RFC3339 string
+// produced by the SDK's own time.Time marshaling.
+func parseMessageDate(raw json.RawMessage) (time.Time, error) {
+	var millis int64
+	if err := json.Unmarshal(raw, &millis); err == nil {
+		return time.UnixMilli(millis), nil
+	}
+
+	var t time.Time
+	if err := json.Unmarshal(raw, &t); err != nil {
+		return time.Time{}, err
+	}
+	return t, nil
+}
+
+// parsePhoto decodes a photo, accepting either the plain image URL string
+// sent by real webhook payloads or a structured Photo object.
+func parsePhoto(raw json.RawMessage) (*Photo, error) {
+	var url string
+	if err := json.Unmarshal(raw, &url); err == nil {
+		return &Photo{URL: url}, nil
+	}
+
+	var photo Photo
+	if err := json.Unmarshal(raw, &photo); err != nil {
+		return nil, err
+	}
+	return &photo, nil
+}
+
+// parseSticker decodes a sticker, accepting either the plain sticker
+// id/reference string sent by real webhook payloads or a structured Sticker
+// object.
+func parseSticker(raw json.RawMessage) (*Sticker, error) {
+	var id string
+	if err := json.Unmarshal(raw, &id); err == nil {
+		return &Sticker{FileID: id}, nil
+	}
+
+	var sticker Sticker
+	if err := json.Unmarshal(raw, &sticker); err != nil {
+		return nil, err
+	}
+	return &sticker, nil
 }
 
 // Attachment represents a file attachment in a message

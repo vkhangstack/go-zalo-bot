@@ -32,8 +32,8 @@ func TestChatType_String(t *testing.T) {
 		ct   ChatType
 		want string
 	}{
-		{"private type", ChatTypePrivate, "private"},
-		{"group type", ChatTypeGroup, "group"},
+		{"private type", ChatTypePrivate, "PRIVATE"},
+		{"group type", ChatTypeGroup, "GROUP"},
 	}
 
 	for _, tt := range tests {
@@ -51,8 +51,8 @@ func TestChatType_JSON(t *testing.T) {
 		ct   ChatType
 		want string
 	}{
-		{"marshal private", ChatTypePrivate, `"private"`},
-		{"marshal group", ChatTypeGroup, `"group"`},
+		{"marshal private", ChatTypePrivate, `"PRIVATE"`},
+		{"marshal group", ChatTypeGroup, `"GROUP"`},
 	}
 
 	for _, tt := range tests {

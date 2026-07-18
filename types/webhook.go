@@ -5,13 +5,15 @@ import (
 	"time"
 )
 
-// Update represents an incoming update from Zalo Bot
+// Update represents an incoming update from Zalo Bot, either from a webhook
+// delivery (Message/EventName populated) or from the getUpdates polling API
+// (UpdateID/Message/PostbackEvent/UserAction populated).
 type Update struct {
-	UpdateID      int            `json:"update_id"`
+	UpdateID      int            `json:"update_id,omitempty"`
+	EventName     string         `json:"event_name,omitempty"`
 	Message       *Message       `json:"message,omitempty"`
 	PostbackEvent *PostbackEvent `json:"postback,omitempty"`
 	UserAction    *UserAction    `json:"user_action,omitempty"`
-	// Other event types as supported by Zalo (Requirement 3.5)
 }
 
 // PostbackEvent represents a postback event from button interactions
@@ -77,55 +79,35 @@ type WebhookInfo struct {
 	AllowedUpdates       []string  `json:"allowed_updates,omitempty"`
 }
 
-// WebhookEvent represents a webhook event payload
-type WebhookEvent struct {
-	EventName string          `json:"event_name"`
-	AppID     string          `json:"app_id"`
-	UserID    string          `json:"user_id"`
-	OAID      string          `json:"oa_id"`
-	Timestamp int64           `json:"timestamp"`
-	Data      json.RawMessage `json:"data"`
+// Event names sent by Zalo in the webhook payload's result.event_name field.
+// See https://bot.zapps.me/docs/webhook/
+const (
+	EventMessageText        = "message.text.received"
+	EventMessageImage       = "message.image.received"
+	EventMessageSticker     = "message.sticker.received"
+	EventMessageVoice       = "message.voice.received"
+	EventMessageUnsupported = "message.unsupported.received"
+)
+
+// WebhookPayload is the envelope Zalo POSTs to a configured webhook URL:
+//
+//	{"ok": true, "result": {"event_name": "message.text.received", "message": {...}}}
+type WebhookPayload struct {
+	OK     bool          `json:"ok"`
+	Result WebhookResult `json:"result"`
 }
 
-// MessageEvent represents a message event in webhook
-type MessageEvent struct {
-	MessageID   string       `json:"message_id"`
-	UserID      string       `json:"user_id"`
-	Text        string       `json:"text,omitempty"`
-	Attachments []Attachment `json:"attachments,omitempty"`
-	Timestamp   int64        `json:"timestamp"`
+// WebhookResult carries the event name and, for message events, the message content.
+type WebhookResult struct {
+	EventName string   `json:"event_name"`
+	Message   *Message `json:"message,omitempty"`
 }
 
-// UserActionEvent represents a user action event in webhook
-type UserActionEvent struct {
-	UserID    string `json:"user_id"`
-	Action    string `json:"action"`
-	Timestamp int64  `json:"timestamp"`
-}
-
-// ParseWebhookEvent parses a webhook event from JSON data
-func ParseWebhookEvent(data []byte) (*WebhookEvent, error) {
-	var event WebhookEvent
-	if err := json.Unmarshal(data, &event); err != nil {
+// ParseWebhookPayload parses a raw webhook request body into a WebhookPayload.
+func ParseWebhookPayload(data []byte) (*WebhookPayload, error) {
+	var payload WebhookPayload
+	if err := json.Unmarshal(data, &payload); err != nil {
 		return nil, err
 	}
-	return &event, nil
-}
-
-// ParseMessageEvent parses message event data
-func (we *WebhookEvent) ParseMessageEvent() (*MessageEvent, error) {
-	var msgEvent MessageEvent
-	if err := json.Unmarshal(we.Data, &msgEvent); err != nil {
-		return nil, err
-	}
-	return &msgEvent, nil
-}
-
-// ParseUserActionEvent parses user action event data
-func (we *WebhookEvent) ParseUserActionEvent() (*UserActionEvent, error) {
-	var actionEvent UserActionEvent
-	if err := json.Unmarshal(we.Data, &actionEvent); err != nil {
-		return nil, err
-	}
-	return &actionEvent, nil
+	return &payload, nil
 }

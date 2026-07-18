@@ -82,85 +82,68 @@ func TestWebhookInfo_JSON(t *testing.T) {
 	}
 }
 
-func TestParseWebhookEvent(t *testing.T) {
-	eventJSON := `{
-		"event_name": "user_send_text",
-		"app_id": "app123",
-		"user_id": "user123",
-		"oa_id": "oa123",
-		"timestamp": 1234567890,
-		"data": {"message_id": "msg123", "text": "Hello"}
-	}`
+// realWebhookSample mirrors the sample payload from https://bot.zapps.me/docs/webhook/
+const realWebhookSample = `{
+	"ok": true,
+	"result": {
+		"message": {
+			"from": {"id": "user1", "display_name": "Ted", "is_bot": false},
+			"chat": {"id": "chat1", "chat_type": "PRIVATE"},
+			"text": "Xin chao",
+			"message_id": "msg1",
+			"date": 1750316131602
+		},
+		"event_name": "message.text.received"
+	}
+}`
 
-	event, err := ParseWebhookEvent([]byte(eventJSON))
+func TestParseWebhookPayload(t *testing.T) {
+	payload, err := ParseWebhookPayload([]byte(realWebhookSample))
 	if err != nil {
-		t.Errorf("ParseWebhookEvent() error = %v", err)
-		return
+		t.Fatalf("ParseWebhookPayload() error = %v", err)
 	}
 
-	if event.EventName != "user_send_text" {
-		t.Errorf("WebhookEvent.EventName = %v, want %v", event.EventName, "user_send_text")
+	if !payload.OK {
+		t.Errorf("WebhookPayload.OK = %v, want true", payload.OK)
 	}
-	if event.AppID != "app123" {
-		t.Errorf("WebhookEvent.AppID = %v, want %v", event.AppID, "app123")
+	if payload.Result.EventName != EventMessageText {
+		t.Errorf("WebhookPayload.Result.EventName = %v, want %v", payload.Result.EventName, EventMessageText)
 	}
-	if event.UserID != "user123" {
-		t.Errorf("WebhookEvent.UserID = %v, want %v", event.UserID, "user123")
+
+	msg := payload.Result.Message
+	if msg == nil {
+		t.Fatal("WebhookPayload.Result.Message is nil, want non-nil")
 	}
-	if event.OAID != "oa123" {
-		t.Errorf("WebhookEvent.OAID = %v, want %v", event.OAID, "oa123")
+	if msg.MessageID != "msg1" {
+		t.Errorf("Message.MessageID = %v, want %v", msg.MessageID, "msg1")
 	}
-	if event.Timestamp != 1234567890 {
-		t.Errorf("WebhookEvent.Timestamp = %v, want %v", event.Timestamp, 1234567890)
+	if msg.Text != "Xin chao" {
+		t.Errorf("Message.Text = %v, want %v", msg.Text, "Xin chao")
+	}
+	if msg.From == nil || msg.From.ID != "user1" {
+		t.Errorf("Message.From = %+v, want ID user1", msg.From)
+	}
+	if msg.Chat == nil || msg.Chat.Type != ChatTypePrivate {
+		t.Errorf("Message.Chat = %+v, want Type %v", msg.Chat, ChatTypePrivate)
+	}
+	wantDate := time.UnixMilli(1750316131602)
+	if !msg.Date.Equal(wantDate) {
+		t.Errorf("Message.Date = %v, want %v", msg.Date, wantDate)
 	}
 }
 
-func TestWebhookEvent_ParseMessageEvent(t *testing.T) {
-	event := &WebhookEvent{
-		EventName: "user_send_text",
-		Data:      json.RawMessage(`{"message_id": "msg123", "user_id": "user123", "text": "Hello", "timestamp": 1234567890}`),
-	}
+func TestParseWebhookPayload_Unsupported(t *testing.T) {
+	sample := `{"ok":true,"result":{"event_name":"message.unsupported.received"}}`
 
-	msgEvent, err := event.ParseMessageEvent()
+	payload, err := ParseWebhookPayload([]byte(sample))
 	if err != nil {
-		t.Errorf("WebhookEvent.ParseMessageEvent() error = %v", err)
-		return
+		t.Fatalf("ParseWebhookPayload() error = %v", err)
 	}
-
-	if msgEvent.MessageID != "msg123" {
-		t.Errorf("MessageEvent.MessageID = %v, want %v", msgEvent.MessageID, "msg123")
+	if payload.Result.EventName != EventMessageUnsupported {
+		t.Errorf("WebhookPayload.Result.EventName = %v, want %v", payload.Result.EventName, EventMessageUnsupported)
 	}
-	if msgEvent.UserID != "user123" {
-		t.Errorf("MessageEvent.UserID = %v, want %v", msgEvent.UserID, "user123")
-	}
-	if msgEvent.Text != "Hello" {
-		t.Errorf("MessageEvent.Text = %v, want %v", msgEvent.Text, "Hello")
-	}
-	if msgEvent.Timestamp != 1234567890 {
-		t.Errorf("MessageEvent.Timestamp = %v, want %v", msgEvent.Timestamp, 1234567890)
-	}
-}
-
-func TestWebhookEvent_ParseUserActionEvent(t *testing.T) {
-	event := &WebhookEvent{
-		EventName: "user_action",
-		Data:      json.RawMessage(`{"user_id": "user123", "action": "follow", "timestamp": 1234567890}`),
-	}
-
-	actionEvent, err := event.ParseUserActionEvent()
-	if err != nil {
-		t.Errorf("WebhookEvent.ParseUserActionEvent() error = %v", err)
-		return
-	}
-
-	if actionEvent.UserID != "user123" {
-		t.Errorf("UserActionEvent.UserID = %v, want %v", actionEvent.UserID, "user123")
-	}
-	if actionEvent.Action != "follow" {
-		t.Errorf("UserActionEvent.Action = %v, want %v", actionEvent.Action, "follow")
-	}
-	if actionEvent.Timestamp != 1234567890 {
-		t.Errorf("UserActionEvent.Timestamp = %v, want %v", actionEvent.Timestamp, 1234567890)
+	if payload.Result.Message != nil {
+		t.Errorf("WebhookPayload.Result.Message = %+v, want nil", payload.Result.Message)
 	}
 }
 

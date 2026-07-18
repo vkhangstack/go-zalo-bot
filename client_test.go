@@ -514,10 +514,6 @@ func TestBotAPI_WebhookIntegration(t *testing.T) {
 		_ = bot.ProcessWebhook
 	})
 
-	t.Run("ValidateWebhookSignature method exists", func(t *testing.T) {
-		_ = bot.ValidateWebhookSignature
-	})
-
 	t.Run("ParseWebhookUpdate method exists", func(t *testing.T) {
 		_ = bot.ParseWebhookUpdate
 	})
@@ -754,10 +750,10 @@ func TestBotAPI_CompleteWebhookFlow(t *testing.T) {
 		
 		// 3. Process webhook
 		_ = bot.ProcessWebhook
-		
-		// 4. Validate signature
-		_ = bot.ValidateWebhookSignature
-		
+
+		// 4. Validate secret token
+		_ = bot.ValidateWebhookSecretToken
+
 		// 5. Parse update
 		_ = bot.ParseWebhookUpdate
 		

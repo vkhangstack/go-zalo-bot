@@ -353,6 +353,31 @@ func TestBaseService_CalculateBackoffDelay(t *testing.T) {
 	}
 }
 
+func TestParseResult(t *testing.T) {
+	tests := []struct {
+		name    string
+		result  json.RawMessage
+		wantErr bool
+	}{
+		{"nil result", nil, true},
+		{"empty result", json.RawMessage(``), true},
+		{"null result", json.RawMessage(`null`), true},
+		{"valid result", json.RawMessage(`{"message_id":"123"}`), false},
+		{"invalid json", json.RawMessage(`{invalid}`), true},
+		{"not json at all", json.RawMessage(`not json`), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var target types.Message
+			err := parseResult(tt.result, &target)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseResult() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestBaseService_DoRequest_WithQueryParams(t *testing.T) {
 	botToken := "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 

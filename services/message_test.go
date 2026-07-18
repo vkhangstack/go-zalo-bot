@@ -65,39 +65,49 @@ func TestMessageService_Send_Success(t *testing.T) {
 			t.Errorf("text = %v, want Hello, World!", payload["text"])
 		}
 		
-		// Return success response
+		// Return success response - real sendMessage API only returns
+		// {"message_id","date"}, see https://bot.zapps.me/docs/apis/sendMessage/
 		resp := APIResponse{
 			OK:     true,
-			Result: json.RawMessage(`{"message_id": "msg123", "chat": {"id": "user123", "type": "private"}, "text": "Hello, World!", "date": "2024-01-01T00:00:00Z"}`),
+			Result: json.RawMessage(`{"message_id": "msg123", "date": 1750316131602}`),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
-	
+
 	service, config := setupTestMessageService(t, botToken)
 	config.BaseURL = server.URL
 	authService, _ := auth.NewAuthService(config)
 	service.authService = authService
-	
+
 	messageConfig := types.MessageConfig{
 		ChatID: "user123",
 		Text:   "Hello, World!",
 	}
-	
+
 	ctx := context.Background()
 	message, err := service.Send(ctx, messageConfig)
-	
+
 	if err != nil {
 		t.Errorf("Send() error = %v", err)
 	}
-	
+
 	if message == nil {
 		t.Fatal("Send() returned nil message")
 	}
-	
+
 	if message.MessageID != "msg123" {
 		t.Errorf("Message.MessageID = %v, want msg123", message.MessageID)
+	}
+
+	// the API response alone doesn't echo chat/text back; Send() must fill
+	// these in from what was actually sent
+	if message.Chat == nil || message.Chat.ID != "user123" {
+		t.Errorf("Message.Chat = %+v, want ID user123", message.Chat)
+	}
+	if message.Text != "Hello, World!" {
+		t.Errorf("Message.Text = %v, want %v", message.Text, "Hello, World!")
 	}
 }
 

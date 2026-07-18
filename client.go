@@ -46,11 +46,13 @@
 //	    SecretToken: "your-webhook-secret",
 //	})
 //
-// Process webhook requests:
+// Process webhook requests using the X-Bot-Api-Secret-Token header Zalo
+// sends with every webhook request:
 //
-//	update, err := bot.ProcessWebhook(payload, signature)
+//	secretToken := r.Header.Get(bot.GetFieldSecretToken())
+//	update, err := bot.ProcessWebhook(payload, secretToken)
 //	if err != nil {
-//	    // Invalid signature
+//	    // Invalid secret token
 //	    return
 //	}
 //	// Handle update
@@ -313,16 +315,12 @@ func (b *BotAPI) GetUserProfile(userID string) (*types.UserProfile, error) {
 	return b.userService.GetUserProfile(b.ctx, userID)
 }
 
-// ProcessWebhook processes a webhook request with signature validation
+// ProcessWebhook processes a webhook request, validating the
+// X-Bot-Api-Secret-Token header value against the configured secret token
+// before parsing the payload.
 // Delegates to the webhook service
-func (b *BotAPI) ProcessWebhook(payload []byte, signature string) (*types.Update, error) {
-	return b.webhookService.ProcessWebhook(payload, signature)
-}
-
-// ValidateWebhookSignature validates a webhook signature
-// Delegates to the webhook service
-func (b *BotAPI) ValidateWebhookSignature(payload []byte, signature string) error {
-	return b.webhookService.ValidateSignature(payload, signature)
+func (b *BotAPI) ProcessWebhook(payload []byte, secretToken string) (*types.Update, error) {
+	return b.webhookService.ProcessWebhook(payload, secretToken)
 }
 
 // ValidateWebhookSecretToken validates a webhook secret token
@@ -494,10 +492,6 @@ func (b *BotAPI) GetWebhookInfo() (*types.WebhookInfo, error) {
 	}
 
 	return apiResp.Result, nil
-}
-
-func (b *BotAPI) GetFieldSignature() string {
-	return b.userService.GetFieldSignature()
 }
 
 func (b *BotAPI) GetFieldSecretToken() string {

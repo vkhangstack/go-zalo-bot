@@ -241,11 +241,6 @@ func (s *BaseService) GetConfig() *types.Config {
 	return s.config
 }
 
-// GetFieldSignature returns the header field name for webhook signature
-func (s *BaseService) GetFieldSignature() string {
-	return "X-Zalo-Signature"
-}
-
 // GetFieldSecretToken returns the header field name for webhook secret token
 func (s *BaseService) GetFieldSecretToken() string {
 	return "x-bot-api-secret-token"
@@ -253,8 +248,11 @@ func (s *BaseService) GetFieldSecretToken() string {
 
 // parseResult parses the result field from API response into the target struct
 func parseResult(result json.RawMessage, target interface{}) error {
-	if len(result) == 0 {
+	if len(result) == 0 || string(result) == "null" {
 		return fmt.Errorf("empty result")
+	}
+	if !json.Valid(result) {
+		return fmt.Errorf("result is not valid json")
 	}
 	return json.Unmarshal(result, target)
 }

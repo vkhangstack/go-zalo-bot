@@ -13,15 +13,15 @@ type User struct {
 // Chat represents a chat in Zalo Bot
 type Chat struct {
 	ID   string   `json:"id"`
-	Type ChatType `json:"type"`
+	Type ChatType `json:"chat_type"`
 }
 
 // ChatType represents the type of chat
 type ChatType string
 
 const (
-	ChatTypePrivate ChatType = "private"
-	ChatTypeGroup   ChatType = "group"
+	ChatTypePrivate ChatType = "PRIVATE"
+	ChatTypeGroup   ChatType = "GROUP"
 )
 
 // IsValid validates the chat type

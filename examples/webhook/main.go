@@ -1,6 +1,6 @@
 // Package main demonstrates how to use the Zalo Bot SDK with webhooks
 // This example shows bot setup with webhooks using bot token,
-// webhook signature validation, and event processing
+// webhook secret token validation, and event processing
 package main
 
 import (
@@ -49,7 +49,8 @@ func main() {
 	}
 	defer bot.Close()
 
-	// Set webhook secret token for signature validation
+	// Set webhook secret token, compared against the X-Bot-Api-Secret-Token
+	// header Zalo sends with every webhook request
 	bot.SetWebhookSecretToken(webhookSecret)
 
 	log.Printf("Bot started successfully with token: %s...", botToken[:10])
@@ -100,24 +101,25 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	// Get signature from header
-	signature := r.Header.Get("X-Zalo-Signature")
-	if signature == "" {
-		log.Println("Missing webhook signature")
-		http.Error(w, "Missing signature", http.StatusUnauthorized)
+	// Get the secret token from the header Zalo sends with every webhook
+	// request (X-Bot-Api-Secret-Token) and re-validate it before processing.
+	secretToken := r.Header.Get(bot.GetFieldSecretToken())
+	if secretToken == "" {
+		log.Println("Missing webhook secret token")
+		http.Error(w, "Missing secret token", http.StatusForbidden)
 		return
 	}
 
-	// Process webhook with signature validation
-	update, err := bot.ProcessWebhook(body, signature)
+	// Process webhook with secret token validation
+	update, err := bot.ProcessWebhook(body, secretToken)
 	if err != nil {
 		log.Printf("Webhook validation failed: %v", err)
-		http.Error(w, "Invalid signature", http.StatusUnauthorized)
+		http.Error(w, "Invalid secret token", http.StatusForbidden)
 		return
 	}
 
 	// Log the received update
-	log.Printf("Received webhook update #%d", update.UpdateID)
+	log.Printf("Received webhook event: %s", update.EventName)
 
 	// Handle the update asynchronously
 	go handleUpdate(update)
@@ -140,38 +142,40 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleUpdate processes incoming updates
+// handleUpdate processes incoming updates.
+//
+// Per https://bot.zapps.me/docs/webhook/, webhooks only ever deliver
+// message.* events - there is no postback or user_action event from the
+// webhook itself.
 func handleUpdate(update *types.Update) {
-	// Handle text messages
-	if update.Message != nil && update.Message.Text != "" {
+	switch update.EventName {
+	case types.EventMessageText:
 		handleTextMessage(update.Message)
-		return
-	}
 
-	// Handle postback events (button clicks)
-	if update.PostbackEvent != nil {
-		handlePostback(update)
-		return
-	}
+	case types.EventMessageImage:
+		handleImageMessage(update.Message)
 
-	// Handle user actions (join, leave, block)
-	if update.UserAction != nil {
-		handleUserAction(update)
-		return
-	}
+	case types.EventMessageSticker:
+		handleStickerMessage(update.Message)
 
-	log.Printf("Received update #%d with no recognized content", update.UpdateID)
+	case types.EventMessageVoice:
+		handleVoiceMessage(update.Message)
+
+	case types.EventMessageUnsupported:
+		// Content withheld for a "special audience" account (minors, etc.)
+		// to comply with applicable regulations - nothing to process.
+		log.Printf("Received unsupported/withheld message event")
+
+	default:
+		log.Printf("Received unrecognized webhook event: %s", update.EventName)
+	}
 }
 
 // handleTextMessage processes text messages and sends responses
 func handleTextMessage(message *types.Message) {
 	log.Printf("Received message from %s: %s", message.From.ID, message.Text)
 
-	// Get chat ID for response
-	chatID := message.From.ID
-	if message.Chat != nil {
-		chatID = message.Chat.ID
-	}
+	chatID := chatIDFor(message)
 
 	// Generate response based on message content
 	var responseText string
@@ -197,53 +201,53 @@ func handleTextMessage(message *types.Message) {
 		responseText = fmt.Sprintf("You said: %s", message.Text)
 	}
 
-	// Send response
+	sendReply(chatID, responseText)
+}
+
+// handleImageMessage processes incoming images (sent as a plain URL)
+func handleImageMessage(message *types.Message) {
+	imageURL := ""
+	if message.Photo != nil {
+		imageURL = message.Photo.URL
+	}
+	log.Printf("Received image from %s: %s (caption: %q)", message.From.ID, imageURL, message.Caption)
+	sendReply(chatIDFor(message), "Thanks for the image!")
+}
+
+// handleStickerMessage processes incoming stickers
+func handleStickerMessage(message *types.Message) {
+	stickerID, stickerURL := "", ""
+	if message.Sticker != nil {
+		stickerID = message.Sticker.FileID
+		stickerURL = message.Sticker.URL
+	}
+	log.Printf("Received sticker from %s: %s (%s)", message.From.ID, stickerID, stickerURL)
+	sendReply(chatIDFor(message), "Nice sticker!")
+}
+
+// handleVoiceMessage processes incoming voice messages
+func handleVoiceMessage(message *types.Message) {
+	log.Printf("Received voice message from %s: %s", message.From.ID, message.VoiceURL)
+	sendReply(chatIDFor(message), "Got your voice message!")
+}
+
+// chatIDFor returns the chat ID to reply to for an incoming message
+func chatIDFor(message *types.Message) string {
+	if message.Chat != nil {
+		return message.Chat.ID
+	}
+	return message.From.ID
+}
+
+// sendReply sends a text response back to the given chat
+func sendReply(chatID, text string) {
 	_, err := bot.SendMessage(types.MessageConfig{
 		ChatID: chatID,
-		Text:   responseText,
+		Text:   text,
 	})
 	if err != nil {
 		log.Printf("Failed to send message: %v", err)
 	} else {
 		log.Printf("Sent response to %s", chatID)
-	}
-}
-
-// handlePostback processes postback events from button clicks
-func handlePostback(update *types.Update) {
-	log.Printf("Received postback: %s", update.PostbackEvent.Payload)
-
-	// Process the postback payload
-	switch update.PostbackEvent.Payload {
-	case "GET_STARTED":
-		log.Println("User clicked Get Started button")
-	case "HELP":
-		log.Println("User clicked Help button")
-	default:
-		log.Printf("Unknown postback payload: %s", update.PostbackEvent.Payload)
-	}
-}
-
-// handleUserAction processes user actions like join, leave, block
-func handleUserAction(update *types.Update) {
-	log.Printf("User action: %s by user %s", update.UserAction.Type, update.UserAction.UserID)
-
-	// Handle different user actions
-	switch update.UserAction.Type {
-	case types.UserActionTypeJoin:
-		// Send welcome message
-		_, err := bot.SendMessage(types.MessageConfig{
-			ChatID: update.UserAction.UserID,
-			Text:   "Welcome! Thanks for joining! 🎉",
-		})
-		if err != nil {
-			log.Printf("Failed to send welcome message: %v", err)
-		}
-
-	case types.UserActionTypeLeave:
-		log.Printf("User %s left", update.UserAction.UserID)
-
-	case types.UserActionTypeBlock:
-		log.Printf("User %s blocked the bot", update.UserAction.UserID)
 	}
 }
