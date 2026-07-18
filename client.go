@@ -500,6 +500,10 @@ func (b *BotAPI) GetFieldSignature() string {
 	return b.userService.GetFieldSignature()
 }
 
+func (b *BotAPI) GetFieldSecretToken() string {
+	return b.userService.GetFieldSecretToken()
+}
+
 // validateWebhookURL validates that the webhook URL is properly formatted and uses HTTPS
 func validateWebhookURL(webhookURL string) error {
 	if strings.TrimSpace(webhookURL) == "" {
